@@ -1,0 +1,8 @@
+﻿<Application
+    x:Class="remote_wiring_experience.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="using:remote_wiring_experience"
+    RequestedTheme="Light">
+
+</Application>

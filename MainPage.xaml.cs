@@ -158,6 +158,7 @@ namespace remote_wiring_experience
 
         private void OnConnectionFailed( string message )
         {
+            timeout.Stop();
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
                 ConnectMessage.Text = "Connection attempt failed: " + message;
@@ -167,6 +168,7 @@ namespace remote_wiring_experience
 
         private void OnConnectionEstablished()
         {
+            timeout.Stop();
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
                 this.Frame.Navigate( typeof( GpioPage ) );

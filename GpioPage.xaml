@@ -8,7 +8,22 @@
     Background="SlateGray"
     mc:Ignorable="d">
     
-    <Grid Name="ControlPanel" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
-    </Grid>
+    <Pivot Name="DeviceControlPivot" PivotItemLoaded="Pivot_PivotItemLoaded">
+        <PivotItem Name="Digital" Header="Digital">
+            <ScrollViewer>
+                <StackPanel Name="DigitalControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            </ScrollViewer>
+        </PivotItem>
+        <PivotItem Name="Analog" Header="Analog">
+            <ScrollViewer>
+                <StackPanel Name="AnalogControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            </ScrollViewer>
+        </PivotItem>
+        <PivotItem Name="I2C" Header="I2C">
+            <ScrollViewer>
+                <StackPanel Name="I2cControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            </ScrollViewer>
+        </PivotItem>
+    </Pivot>
 
 </Page>

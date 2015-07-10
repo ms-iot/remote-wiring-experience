@@ -236,6 +236,11 @@ namespace remote_wiring_experience
                 bitmaps.Add( "disabled_" + i, new BitmapImage( new Uri( BaseUri, @"Assets/disabled_" + i + ".png" ) ) );
                 bitmaps.Add( "input_" + i, new BitmapImage( new Uri( BaseUri, @"Assets/input_" + i + ".png" ) ) );
             }
+
+            for( int i = 0; i < numberOfPwmPins; ++i )
+            {
+                bitmaps.Add( "pwm_" + pwmPins[i], new BitmapImage( new Uri( BaseUri, @"Assets/pwm_" + pwmPins[i] + ".png" ) ) );
+            }
         }
 
 
@@ -272,6 +277,11 @@ namespace remote_wiring_experience
             for( byte pin = 0; pin < numberOfAnalogPins; ++pin )
             {
                 UpdateAnalogPinModeIndicator( pin );
+            }
+
+            for( byte i = 0; i < numberOfPwmPins; ++i )
+            {
+                UpdatePwmPinModeIndicator( pwmPins[i] );
             }
         }
 
@@ -368,7 +378,7 @@ namespace remote_wiring_experience
                 slider.Minimum = 0;
                 slider.Maximum = 255;
                 slider.Name = "slider_" + pwmPins[i];
-                slider.Width = double.NaN;
+                slider.Width = 220;
                 pwmSliders.Add( pwmPins[i], slider );
                 stack.Children.Add( slider );
 
@@ -528,6 +538,7 @@ namespace remote_wiring_experience
 
                 default:
                     image = bitmaps["disabled_" + pin];
+                    pwmSliders[pin].Visibility = Visibility.Collapsed;
                     break;
             }
 

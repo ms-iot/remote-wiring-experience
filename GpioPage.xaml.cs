@@ -82,9 +82,10 @@ namespace remote_wiring_experience
             //we must dispatch the change to the UI thread to update the text field.
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
-                if( analogTextBlocks.ContainsKey( pin ) ) analogTextBlocks[pin].Text = Convert.ToString( value );
+                UpdateAnalogTextBlockValue( pin, value );
             } ) );
         }
+
 
         /// <summary>
         /// This function is called when the Windows Remote Arduino library reports that an input value has changed for a digital pin.
@@ -96,7 +97,7 @@ namespace remote_wiring_experience
             //we must dispatch the change to the UI thread to change the indicator image
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
-                if( digitalStateImages.ContainsKey( pin ) ) digitalStateImages[pin].Source = GetDigitalPinStateSource( pin );
+                UpdateDigitalPinStateIndicator( pin );
             } ) );
         }
 
@@ -135,7 +136,7 @@ namespace remote_wiring_experience
             var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.ANALOG : PinMode.OUTPUT;
 
             arduino.pinMode( pinnumber, nextMode );
-            image.Source = GetAnalogPinModeSource( pin );
+            UpdateAnalogPinModeIndicator( pin );
         }
 
 
@@ -154,7 +155,7 @@ namespace remote_wiring_experience
             var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.INPUT : PinMode.OUTPUT;
 
             arduino.pinMode( pin, nextMode );
-            image.Source = GetDigitalPinModeSource( GetPinFromButtonObject( button ) );
+            UpdateDigitalPinModeIndicator( pin );
         }
 
         /// <summary>
@@ -178,7 +179,7 @@ namespace remote_wiring_experience
             var nextState = ( state == PinState.HIGH ) ? PinState.LOW : PinState.HIGH;
 
             arduino.digitalWrite( pin, nextState );
-            image.Source = GetDigitalPinStateSource( pin );
+            UpdateDigitalPinStateIndicator( pin );
         }
 
         /// <summary>
@@ -197,14 +198,13 @@ namespace remote_wiring_experience
         private void OnClick_PwmModeToggleButton( object sender, RoutedEventArgs args )
         {
             var button = sender as Button;
-            var image = button.Content as Image;
             var pin = GetPinFromButtonObject( button );
 
             var mode = arduino.getPinMode( pin );
             var nextMode = ( mode == PinMode.PWM ) ? PinMode.INPUT : PinMode.PWM;
 
             arduino.pinMode( pin, nextMode );
-            image.Source = GetPwmPinModeSource( pin );
+            UpdatePwmPinModeIndicator( pin );
             pwmSliders[pin].Visibility = ( nextMode == PinMode.PWM ) ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -246,24 +246,56 @@ namespace remote_wiring_experience
         /// <param name="args">relative arguments, including the item that is being loaded</param>
         private void Pivot_PivotItemLoaded( Pivot sender, PivotItemEventArgs args )
         {
-            if( uiControlsLoaded[args.Item.Name] ) return;
-
             switch( args.Item.Name )
             {
                 case "Digital":
-                    loadDigitalControls();
+                    UpdateDigitalControls();
                     break;
 
                 case "Analog":
-                    loadAnalogControls();
+                    UpdateAnalogControls();
                     break;
 
                 case "I2C":
-                    loadI2cControls();
+                    UpdateI2cControls();
                     break;
             }
             uiControlsLoaded[args.Item.Name] = true;
         }
+
+        /// <summary>
+        /// Updates the UI for the analog control page as necessary
+        /// </summary>
+        private void UpdateAnalogControls()
+        {
+            if( !uiControlsLoaded["Analog"] ) loadAnalogControls();
+            for( byte pin = 0; pin < numberOfAnalogPins; ++pin )
+            {
+                UpdateAnalogPinModeIndicator( pin );
+            }
+        }
+
+        /// <summary>
+        /// Updates the UI for the digital control page as necessary
+        /// </summary>
+        private void UpdateDigitalControls()
+        {
+            if( !uiControlsLoaded["Digital"] ) loadDigitalControls();
+            for( byte pin = 0; pin < numberOfDigitalPins; ++pin )
+            {
+                UpdateDigitalPinModeIndicator( pin );
+                UpdateDigitalPinStateIndicator( pin );
+            }
+        }
+
+        /// <summary>
+        /// Updates the UI for the I2C control page as necessary
+        /// </summary>
+        private void UpdateI2cControls()
+        {
+            if( !uiControlsLoaded["I2C"] ) loadI2cControls();
+        }
+
 
         /// <summary>
         /// Adds the necessary analog controls to the analog pivot page, this will only be called the first time this pivot page is loaded
@@ -280,7 +312,6 @@ namespace remote_wiring_experience
                 //set up the mode toggle button
                 var button = new Button();
                 var image = new Image();
-                image.Source = GetAnalogPinModeSource( i );
                 image.Stretch = Stretch.Uniform;
                 analogModeImages.Add( i, image );
                 button.Content = image;
@@ -314,7 +345,6 @@ namespace remote_wiring_experience
                 //set up the mode toggle button
                 var button = new Button();
                 var image = new Image();
-                image.Source = GetPwmPinModeSource( pwmPins[i] );
                 image.Stretch = Stretch.Uniform;
                 pwmModeImages.Add( pwmPins[i], image );
                 button.Content = image;
@@ -362,7 +392,6 @@ namespace remote_wiring_experience
                 //set up the mode toggle button
                 var button = new Button();
                 var image = new Image();
-                image.Source = GetDigitalPinModeSource( i );
                 image.Stretch = Stretch.Uniform;
                 digitalModeImages.Add( i, image );
                 button.Content = image;
@@ -377,7 +406,6 @@ namespace remote_wiring_experience
                 //set up the state toggle indicator/button
                 button = new Button();
                 image = new Image();
-                image.Source = GetDigitalPinStateSource( i );
                 image.Stretch = Stretch.Uniform;
                 digitalStateImages.Add( i, image );
                 button.Content = image;
@@ -393,8 +421,7 @@ namespace remote_wiring_experience
             }
         }
 
-
-
+        
         /// <summary>
         /// Adds the necessary i2c controls to the i2c pivot page, this will only be called the first time this pivot page is loaded
         /// </summary>
@@ -404,80 +431,114 @@ namespace remote_wiring_experience
         }
 
         /// <summary>
-        /// This function will determine which indicator image should be applied for a given digital pin
+        /// This function will determine which indicator image should be applied for a given digital pin and apply it to the correct Image object
         /// </summary>
-        /// <param name="pin"></param>
-        /// <returns>The ImageSource object which should be displayed for the given pin</returns>
-        private ImageSource GetDigitalPinStateSource( byte pin )
+        /// <param name="pin">the pin number to be updated</param>
+        private void UpdateDigitalPinStateIndicator( byte pin )
         {
-            if( arduino.getPinMode( pin ) == PinMode.PWM ) return bitmaps["analog"];
-            else if( arduino.digitalRead( pin ) == PinState.HIGH ) return bitmaps["high"];
-            return bitmaps["low"];
+            if( !digitalStateImages.ContainsKey( pin ) ) return;
+
+            ImageSource image;
+            if( arduino.getPinMode( pin ) == PinMode.PWM ) image = bitmaps["analog"];
+            else if( arduino.digitalRead( pin ) == PinState.HIGH ) image = bitmaps["high"];
+            else image = bitmaps["low"];
+
+            digitalStateImages[pin].Source = image;
         }
 
         /// <summary>
-        /// This function will determine which pin mode image should be applied for a given digital pin
+        /// This function will determine which pin mode image should be applied for a given digital pin and apply it to the correct Image object
         /// </summary>
-        /// <param name="pin"></param>
-        /// <returns>The ImageSource object which should be displayed for the given pin</returns>
-        private ImageSource GetDigitalPinModeSource( byte pin )
+        /// <param name="pin">the pin number to be updated</param>
+        private void UpdateDigitalPinModeIndicator( byte pin )
         {
+            if( !digitalModeImages.ContainsKey( pin ) ) return;
+
+            ImageSource image;
             switch( arduino.getPinMode( pin ) )
             {
                 case PinMode.INPUT:
-                    return bitmaps["input_" + pin];
+                    image = bitmaps["input_" + pin];
+                    break;
 
                 case PinMode.OUTPUT:
-                    return bitmaps["output_" + pin];
+                    image = bitmaps["output_" + pin];
+                    break;
 
                 default:
                 case PinMode.PWM:
-                    return bitmaps["disabled_" + pin];
+                    image = bitmaps["disabled_" + pin];
+                    break;
             }
+
+            digitalModeImages[pin].Source = image;
         }
 
         /// <summary>
-        /// This function will determine which pin mode image should be applied for a given analog pin
+        /// This function will determine which pin mode image should be applied for a given analog pin and apply it to the correct Image object
         /// </summary>
-        /// <param name="pin"></param>
-        /// <returns>The ImageSource object which should be displayed for the given pin</returns>
-        private ImageSource GetAnalogPinModeSource( byte pin )
+        /// <param name="pin">the pin number to be updated</param>
+        private void UpdateAnalogPinModeIndicator( byte pin )
         {
+            if( !analogModeImages.ContainsKey( pin ) ) return;
+
+            ImageSource image;
             switch( arduino.getPinMode( ConvertAnalogPinToPinNumber( pin ) ) )
             {
                 case PinMode.ANALOG:
-                    return bitmaps["input_a" + pin];
+                    image = bitmaps["input_a" + pin];
+                    break;
 
                 case PinMode.I2C:
-                    return bitmaps["disabled_a" + pin];
+                    image = bitmaps["disabled_a" + pin];
+                    break;
 
                 default:
-                    return bitmaps["none_a" + pin];
+                    image = bitmaps["none_a" + pin];
+                    break;
             }
+
+            analogModeImages[pin].Source = image;
         }
-        
+
         /// <summary>
-        /// This function will determine which pin mode image should be applied for a given pwm pin
+        /// This function will apply the given value to the given analog pin input
         /// </summary>
-        /// <param name="pin"></param>
-        /// <returns>The ImageSource object which should be displayed for the given pin</returns>
-        private ImageSource GetPwmPinModeSource( byte pin )
+        /// <param name="pin">the pin number to be updated</param>
+        /// <param name="value">the value to display</param>
+        private void UpdateAnalogTextBlockValue( byte pin, ushort value )
         {
+            if( analogTextBlocks.ContainsKey( pin ) ) analogTextBlocks[pin].Text = Convert.ToString( value );
+        }
+
+        /// <summary>
+        /// This function will determine which pin mode image should be applied for a given pwm pin and apply it to the correct Image object
+        /// </summary>
+        /// <param name="pin">the pin number to be updated</param>
+        private void UpdatePwmPinModeIndicator( byte pin )
+        {
+            if( !pwmModeImages.ContainsKey( pin ) ) return;
+
+            ImageSource image;
             switch( arduino.getPinMode( pin ) )
             {
                 case PinMode.PWM:
-                    return bitmaps["output_" + pin];
+                    image = bitmaps["output_" + pin];
+                    break;
 
                 default:
-                    return bitmaps["disabled_" + pin];
+                    image = bitmaps["disabled_" + pin];
+                    break;
             }
+
+            pwmModeImages[pin].Source = image;
         }
 
         /// <summary>
         /// retrieves the pin number associated with a button object
         /// </summary>
-        /// <param name="button"></param>
-        /// <returns></returns>
+        /// <param name="button">the button to retrieve a pin number from</param>
+        /// <returns>the pin number</returns>
         private byte GetPinFromButtonObject( Button button )
         {
             return Convert.ToByte( button.Name.Substring( button.Name.IndexOf( '_' ) + 1 ) );

@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Text;
+using System.Collections.Generic;
 using Windows.UI.Xaml;
 using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
-using System.Collections.Generic;
 using Windows.UI.Xaml.Media;
 using Windows.UI.Xaml.Media.Imaging;
+using Windows.UI.Notifications;
+using Windows.UI.Xaml.Controls.Primitives;
 using Microsoft.Maker.RemoteWiring;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
@@ -20,10 +23,10 @@ namespace remote_wiring_experience
          * we wan't to programatically create our UI so that we can eventually support any Arduino type
          * but for now we will define our values as constant member variables
          */
-        private const int numberOfAnalogButtons = 6;
-        private const int numberOfDigitalButtons = 14;
-        private const int numberOfAnalogSliders = 7;
-        private byte[] analogSliders = { 3, 5, 6, 9, 10, 11, 13 };
+        private const int numberOfAnalogPins = 6;
+        private const int numberOfDigitalPins = 14;
+        private static byte[] pwmPins = { 3, 5, 6, 9, 10, 11, 13 };
+        private int numberOfPwmPins = pwmPins.Length;
 
         //stores image assets so that they can be loaded once and reused many times
         private Dictionary<String, BitmapImage> bitmaps;
@@ -31,11 +34,29 @@ namespace remote_wiring_experience
         //remembers what UI control elements have been loaded
         private Dictionary<String, bool> uiControlsLoaded;
 
+        //these dictionaries store the loaded UI elements for easy access by pin number
+        private Dictionary<byte, Image> digitalModeImages;
+        private Dictionary<byte, Image> digitalStateImages;
+        private Dictionary<byte, Image> analogModeImages;
+        private Dictionary<byte, TextBlock> analogTextBlocks;
+        private Dictionary<byte, Image> pwmModeImages;
+        private Dictionary<byte, Slider> pwmSliders;
+
+        private RemoteDevice arduino;
+
         public GpioPage()
         {
             this.InitializeComponent();
+
             bitmaps = new Dictionary<string, BitmapImage>();
             uiControlsLoaded = new Dictionary<string, bool>();
+            pwmSliders = new Dictionary<byte, Slider>();
+            digitalModeImages = new Dictionary<byte, Image>();
+            digitalStateImages = new Dictionary<byte, Image>();
+            analogModeImages = new Dictionary<byte, Image>();
+            analogTextBlocks = new Dictionary<byte, TextBlock>();
+            pwmModeImages = new Dictionary<byte, Image>();
+
             foreach( var item in DeviceControlPivot.Items )
             {
                 uiControlsLoaded.Add( ( (PivotItem)item ).Name, false );
@@ -46,6 +67,145 @@ namespace remote_wiring_experience
         {
             base.OnNavigatedTo( e );
             loadAssets();
+            arduino = App.Arduino;
+            arduino.DigitalPinUpdatedEvent += Arduino_DigitalPinUpdatedEvent;
+            arduino.AnalogPinUpdatedEvent += Arduino_AnalogPinUpdatedEvent;
+        }
+
+        /// <summary>
+        /// This function is called when the Windows Remote Arduino library reports that an input value has changed for an analog pin.
+        /// </summary>
+        /// <param name="pin">The pin whose value has changed</param>
+        /// <param name="value">the new value of the pin</param>
+        private void Arduino_AnalogPinUpdatedEvent( byte pin, ushort value )
+        {
+            //we must dispatch the change to the UI thread to update the text field.
+            var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
+            {
+                if( analogTextBlocks.ContainsKey( pin ) ) analogTextBlocks[pin].Text = Convert.ToString( value );
+            } ) );
+        }
+
+        /// <summary>
+        /// This function is called when the Windows Remote Arduino library reports that an input value has changed for a digital pin.
+        /// </summary>
+        /// <param name="pin">The pin whose value has changed</param>
+        /// <param name="state">the new state of the pin, either HIGH or LOW</param>
+        private void Arduino_DigitalPinUpdatedEvent( byte pin, PinState state )
+        {
+            //we must dispatch the change to the UI thread to change the indicator image
+            var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
+            {
+                if( digitalStateImages.ContainsKey( pin ) ) digitalStateImages[pin].Source = GetDigitalPinStateSource( pin );
+            } ) );
+        }
+
+
+        /// <summary>
+        /// Arduino numbers their analog pins directly after the digital pins. Meaning A0 is actally pin 14 on an Uno,
+        /// because there are 14 digital pins on an Uno. Therefore, when we're working with functions that don't know the
+        /// difference between Analog and Digital pin numbers, we need to convert pin 0 (meaning A0) into pin + numberOfDigitalPins
+        /// </summary>
+        /// <param name="pin"></param>
+        /// <returns></returns>
+        private byte ConvertAnalogPinToPinNumber( byte pin )
+        {
+            return (byte)( pin + numberOfDigitalPins );
+        }
+
+
+        //******************************************************************************
+        //* Button Callbacks
+        //******************************************************************************
+
+
+        /// <summary>
+        /// Invoked when the analog mode toggle button is tapped or pressed
+        /// </summary>
+        /// <param name="sender">the button being pressed</param>
+        /// <param name="args">button press event args</param>
+        private void OnClick_AnalogModeToggleButton( object sender, RoutedEventArgs args )
+        {
+            var button = sender as Button;
+            var image = button.Content as Image;
+            var pin = GetPinFromButtonObject( button );
+            var pinnumber = ConvertAnalogPinToPinNumber( pin );
+
+            var mode = arduino.getPinMode( pinnumber );
+            var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.ANALOG : PinMode.OUTPUT;
+
+            arduino.pinMode( pinnumber, nextMode );
+            image.Source = GetAnalogPinModeSource( pin );
+        }
+
+
+        /// <summary>
+        /// Invoked when the analog mode toggle button is tapped or pressed
+        /// </summary>
+        /// <param name="sender">the button being pressed</param>
+        /// <param name="args">button press event args</param>
+        private void OnClick_DigitalModeToggleButton( object sender, RoutedEventArgs args )
+        {
+            var button = sender as Button;
+            var image = button.Content as Image;
+            var pin = GetPinFromButtonObject( button );
+
+            var mode = arduino.getPinMode( pin );
+            var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.INPUT : PinMode.OUTPUT;
+
+            arduino.pinMode( pin, nextMode );
+            image.Source = GetDigitalPinModeSource( GetPinFromButtonObject( button ) );
+        }
+
+        /// <summary>
+        /// Invoked when the digital state toggle button is tapped or pressed
+        /// </summary>
+        /// <param name="sender">the button being pressed</param>
+        /// <param name="args">button press event args</param>
+        private void OnClick_DigitalStateToggleButton( object sender, RoutedEventArgs args )
+        {
+            var button = sender as Button;
+            var image = button.Content as Image;
+            var pin = GetPinFromButtonObject( button );
+
+            if( arduino.getPinMode( pin ) != PinMode.OUTPUT )
+            {
+                showToast( "Incorrect PinMode!", "You must first set this pin to OUTPUT", null );
+                return;
+            }
+
+            var state = arduino.digitalRead( pin );
+            var nextState = ( state == PinState.HIGH ) ? PinState.LOW : PinState.HIGH;
+
+            arduino.digitalWrite( pin, nextState );
+            image.Source = GetDigitalPinStateSource( pin );
+        }
+
+        /// <summary>
+        /// Invoked when the slider value for a PWM pin is modified.
+        /// </summary>
+        /// <param name="sender">the slider being manipulated</param>
+        /// <param name="args">slider value changed event args</param>
+        private void OnValueChanged_PwmSlider( object sender, RangeBaseValueChangedEventArgs args )
+        {
+            var slider = sender as Slider;
+            var pin = Convert.ToByte( slider.Name.Substring( slider.Name.IndexOf( '_' ) + 1 ) );
+
+            arduino.analogWrite( pin, (byte)args.NewValue );
+        }
+
+        private void OnClick_PwmModeToggleButton( object sender, RoutedEventArgs args )
+        {
+            var button = sender as Button;
+            var image = button.Content as Image;
+            var pin = GetPinFromButtonObject( button );
+
+            var mode = arduino.getPinMode( pin );
+            var nextMode = ( mode == PinMode.PWM ) ? PinMode.INPUT : PinMode.PWM;
+
+            arduino.pinMode( pin, nextMode );
+            image.Source = GetPwmPinModeSource( pin );
+            pwmSliders[pin].Visibility = ( nextMode == PinMode.PWM ) ? Visibility.Visible : Visibility.Collapsed;
         }
 
 
@@ -63,14 +223,14 @@ namespace remote_wiring_experience
             bitmaps.Add( "low", new BitmapImage( new Uri( BaseUri, @"Assets/low.png" ) ) );
             bitmaps.Add( "analog", new BitmapImage( new Uri( BaseUri, @"Assets/analog.png" ) ) );
 
-            for( int i = 0; i < numberOfAnalogButtons; ++i )
+            for( int i = 0; i < numberOfAnalogPins; ++i )
             {
                 bitmaps.Add( "none_a" + i, new BitmapImage( new Uri( BaseUri, @"Assets/none_a" + i + ".png" ) ) );
                 bitmaps.Add( "disabled_a" + i, new BitmapImage( new Uri( BaseUri, @"Assets/disabled_a" + i + ".png" ) ) );
                 bitmaps.Add( "input_a" + i, new BitmapImage( new Uri( BaseUri, @"Assets/input_a" + i + ".png" ) ) );
             }
 
-            for( int i = 0; i < numberOfDigitalButtons; ++i )
+            for( int i = 0; i < numberOfDigitalPins; ++i )
             {
                 bitmaps.Add( "output_" + i, new BitmapImage( new Uri( BaseUri, @"Assets/output_" + i + ".png" ) ) );
                 bitmaps.Add( "disabled_" + i, new BitmapImage( new Uri( BaseUri, @"Assets/disabled_" + i + ".png" ) ) );
@@ -110,7 +270,8 @@ namespace remote_wiring_experience
         /// </summary>
         private void loadAnalogControls()
         {
-            for( int i = 0; i < numberOfAnalogButtons; ++i )
+            //add controls and text fields for each analog pin the board supports
+            for( byte i = 0; i < numberOfAnalogPins; ++i )
             {
                 var stack = new StackPanel();
                 stack.Orientation = Orientation.Horizontal;
@@ -119,13 +280,16 @@ namespace remote_wiring_experience
                 //set up the mode toggle button
                 var button = new Button();
                 var image = new Image();
-                image.Source = bitmaps[ "none_a" + i ];
+                image.Source = GetAnalogPinModeSource( i );
                 image.Stretch = Stretch.Uniform;
+                analogModeImages.Add( i, image );
                 button.Content = image;
                 button.HorizontalAlignment = HorizontalAlignment.Center;
                 button.VerticalAlignment = VerticalAlignment.Center;
                 button.Padding = new Thickness();
                 button.Margin = new Thickness( 5, 0, 5, 0 );
+                button.Name = "analogmode_" + i;
+                button.Click += OnClick_AnalogModeToggleButton;
                 stack.Children.Add( button );
 
                 //set up the indication text
@@ -133,54 +297,103 @@ namespace remote_wiring_experience
                 text.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text.VerticalAlignment = VerticalAlignment.Center;
                 text.Text = "Tap to enable.";
+                analogTextBlocks.Add( i, text );
                 stack.Children.Add( text );
 
                 AnalogControls.Children.Add( stack );
             }
+
+            //add controls and value sliders for each pwm pin the board supports
+            for( byte i = 0; i < numberOfPwmPins; ++i )
+            {
+                var stack = new StackPanel();
+                stack.Orientation = Orientation.Horizontal;
+                stack.FlowDirection = FlowDirection.LeftToRight;
+                stack.HorizontalAlignment = HorizontalAlignment.Stretch;
+
+                //set up the mode toggle button
+                var button = new Button();
+                var image = new Image();
+                image.Source = GetPwmPinModeSource( pwmPins[i] );
+                image.Stretch = Stretch.Uniform;
+                pwmModeImages.Add( pwmPins[i], image );
+                button.Content = image;
+                button.HorizontalAlignment = HorizontalAlignment.Center;
+                button.VerticalAlignment = VerticalAlignment.Center;
+                button.Padding = new Thickness();
+                button.Margin = new Thickness( 5, 0, 5, 0 );
+                button.Name = "pwm_" + pwmPins[i];
+                button.Click += OnClick_PwmModeToggleButton;
+                stack.Children.Add( button );
+
+                //set up the value change slider
+                var slider = new Slider();
+                slider.Visibility = Visibility.Collapsed;
+                slider.Orientation = Orientation.Horizontal;
+                slider.HorizontalAlignment = HorizontalAlignment.Stretch;
+                slider.SmallChange = 32;
+                slider.StepFrequency = 32;
+                slider.TickFrequency = 32;
+                slider.ValueChanged += OnValueChanged_PwmSlider;
+                slider.Minimum = 0;
+                slider.Maximum = 255;
+                slider.Name = "slider_" + pwmPins[i];
+                slider.Width = double.NaN;
+                pwmSliders.Add( pwmPins[i], slider );
+                stack.Children.Add( slider );
+
+                AnalogControls.Children.Add( stack );
+            }
         }
+
 
         /// <summary>
         /// Adds the necessary digital controls to the digital pivot page, this will only be called the first time this pivot page is loaded
         /// </summary>
         private void loadDigitalControls()
         {
-            for( int i = 0; i < numberOfDigitalButtons; ++i )
+            //add controls and state change indicators/buttons for each digital pin the board supports
+            for( byte i = 0; i < numberOfDigitalPins; ++i )
             {
                 var stack = new StackPanel();
                 stack.Orientation = Orientation.Horizontal;
                 stack.FlowDirection = FlowDirection.LeftToRight;
 
                 //set up the mode toggle button
-                var name = "output_" + i;
                 var button = new Button();
                 var image = new Image();
-                image.Source = bitmaps[ name ];
+                image.Source = GetDigitalPinModeSource( i );
                 image.Stretch = Stretch.Uniform;
+                digitalModeImages.Add( i, image );
                 button.Content = image;
                 button.HorizontalAlignment = HorizontalAlignment.Center;
                 button.VerticalAlignment = VerticalAlignment.Center;
                 button.Padding = new Thickness(); ;
                 button.Margin = new Thickness( 5, 0, 5, 0 ); ;
-                button.Name = name;
+                button.Name = "digitalmode_" + i;
+                button.Click += OnClick_DigitalModeToggleButton;
                 stack.Children.Add( button );
 
-                //set up the state toggle button
-                name = "digitalstate_" + i;
+                //set up the state toggle indicator/button
                 button = new Button();
                 image = new Image();
-                image.Source = bitmaps["low"];
+                image.Source = GetDigitalPinStateSource( i );
                 image.Stretch = Stretch.Uniform;
+                digitalStateImages.Add( i, image );
                 button.Content = image;
                 button.HorizontalAlignment = HorizontalAlignment.Center;
                 button.VerticalAlignment = VerticalAlignment.Center;
                 button.Padding = new Thickness();
                 button.Margin = new Thickness( 5, 0, 5, 0 );
-                button.Name = name;
+                button.Name = "digitalstate_" + i;
+                button.Click += OnClick_DigitalStateToggleButton;
                 stack.Children.Add( button );
                 
                 DigitalControls.Children.Add( stack );
             }
         }
+
+
 
         /// <summary>
         /// Adds the necessary i2c controls to the i2c pivot page, this will only be called the first time this pivot page is loaded
@@ -188,6 +401,118 @@ namespace remote_wiring_experience
         private void loadI2cControls()
         {
             //throw new NotImplementedException();
+        }
+
+        /// <summary>
+        /// This function will determine which indicator image should be applied for a given digital pin
+        /// </summary>
+        /// <param name="pin"></param>
+        /// <returns>The ImageSource object which should be displayed for the given pin</returns>
+        private ImageSource GetDigitalPinStateSource( byte pin )
+        {
+            if( arduino.getPinMode( pin ) == PinMode.PWM ) return bitmaps["analog"];
+            else if( arduino.digitalRead( pin ) == PinState.HIGH ) return bitmaps["high"];
+            return bitmaps["low"];
+        }
+
+        /// <summary>
+        /// This function will determine which pin mode image should be applied for a given digital pin
+        /// </summary>
+        /// <param name="pin"></param>
+        /// <returns>The ImageSource object which should be displayed for the given pin</returns>
+        private ImageSource GetDigitalPinModeSource( byte pin )
+        {
+            switch( arduino.getPinMode( pin ) )
+            {
+                case PinMode.INPUT:
+                    return bitmaps["input_" + pin];
+
+                case PinMode.OUTPUT:
+                    return bitmaps["output_" + pin];
+
+                default:
+                case PinMode.PWM:
+                    return bitmaps["disabled_" + pin];
+            }
+        }
+
+        /// <summary>
+        /// This function will determine which pin mode image should be applied for a given analog pin
+        /// </summary>
+        /// <param name="pin"></param>
+        /// <returns>The ImageSource object which should be displayed for the given pin</returns>
+        private ImageSource GetAnalogPinModeSource( byte pin )
+        {
+            switch( arduino.getPinMode( ConvertAnalogPinToPinNumber( pin ) ) )
+            {
+                case PinMode.ANALOG:
+                    return bitmaps["input_a" + pin];
+
+                case PinMode.I2C:
+                    return bitmaps["disabled_a" + pin];
+
+                default:
+                    return bitmaps["none_a" + pin];
+            }
+        }
+        
+        /// <summary>
+        /// This function will determine which pin mode image should be applied for a given pwm pin
+        /// </summary>
+        /// <param name="pin"></param>
+        /// <returns>The ImageSource object which should be displayed for the given pin</returns>
+        private ImageSource GetPwmPinModeSource( byte pin )
+        {
+            switch( arduino.getPinMode( pin ) )
+            {
+                case PinMode.PWM:
+                    return bitmaps["output_" + pin];
+
+                default:
+                    return bitmaps["disabled_" + pin];
+            }
+        }
+
+        /// <summary>
+        /// retrieves the pin number associated with a button object
+        /// </summary>
+        /// <param name="button"></param>
+        /// <returns></returns>
+        private byte GetPinFromButtonObject( Button button )
+        {
+            return Convert.ToByte( button.Name.Substring( button.Name.IndexOf( '_' ) + 1 ) );
+        }
+
+        /// <summary>
+        /// displays a toast with the given heading, body, and optional second body
+        /// </summary>
+        /// <param name="heading">A required heading</param>
+        /// <param name="body">A required body</param>
+        /// <param name="body2">an optional second body</param>
+        private void showToast( string heading, string body, string body2 )
+        {
+            var builder = new StringBuilder();
+            builder.Append( "<toast><visual version='1'><binding template='ToastText04'><text id='1'>" )
+                .Append( heading )
+                .Append( "</text><text id='2'>" )
+                .Append( body )
+                .Append( "</text>" );
+
+            if( !string.IsNullOrEmpty( body2 ) )
+            {
+                builder.Append( "<text id='3'>" )
+                    .Append( body2 )
+                    .Append( "</text>" );
+            }
+
+            builder.Append( "</binding>" )
+                .Append( "</visual>" )
+                .Append( "</toast>" );
+
+            var toastDom = new Windows.Data.Xml.Dom.XmlDocument();
+            toastDom.LoadXml( builder.ToString() );
+            var toast = new ToastNotification( toastDom );
+            ToastNotificationManager.CreateToastNotifier().Show( toast );
         }
     }
 }

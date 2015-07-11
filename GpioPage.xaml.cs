@@ -27,6 +27,8 @@ namespace remote_wiring_experience
         private const int numberOfDigitalPins = 14;
         private static byte[] pwmPins = { 3, 5, 6, 9, 10, 11, 13 };
         private int numberOfPwmPins = pwmPins.Length;
+        private static byte[] i2cPins = { 18, 19 };
+        private bool isI2cEnabled = false;
 
         //stores image assets so that they can be loaded once and reused many times
         private Dictionary<String, BitmapImage> bitmaps;
@@ -41,6 +43,7 @@ namespace remote_wiring_experience
         private Dictionary<byte, TextBlock> analogTextBlocks;
         private Dictionary<byte, Image> pwmModeImages;
         private Dictionary<byte, Slider> pwmSliders;
+
 
         private RemoteDevice arduino;
 
@@ -130,12 +133,28 @@ namespace remote_wiring_experience
             var button = sender as Button;
             var image = button.Content as Image;
             var pin = GetPinFromButtonObject( button );
-            var pinnumber = ConvertAnalogPinToPinNumber( pin );
+            var analogPinNumber = ConvertAnalogPinToPinNumber( pin );
 
-            var mode = arduino.getPinMode( pinnumber );
+            var mode = arduino.getPinMode( analogPinNumber );
             var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.ANALOG : PinMode.OUTPUT;
 
-            arduino.pinMode( pinnumber, nextMode );
+            arduino.pinMode( analogPinNumber, nextMode );
+
+            //two of the analog pins are also the I2C pins (SDA and SCL), so if this pin is one of those, we just disabled I2C
+            if( isI2cEnabled )
+            {
+                if( i2cPins[0] == analogPinNumber )
+                {
+                    isI2cEnabled = false;
+                    arduino.pinMode( i2cPins[1], PinMode.OUTPUT );
+                }
+                else if( i2cPins[1] == analogPinNumber )
+                {
+                    isI2cEnabled = false;
+                    arduino.pinMode( i2cPins[0], PinMode.OUTPUT );
+                }
+            }
+
             UpdateAnalogPinModeIndicator( pin );
         }
 
@@ -209,6 +228,29 @@ namespace remote_wiring_experience
         }
 
 
+        private void OnClick_I2cToggleButton( object sender, RoutedEventArgs e )
+        {
+            if( !isI2cEnabled )
+            {
+                arduino.I2c.enable();
+                isI2cEnabled = true;
+            }
+            UpdateI2cControls();
+        }
+
+
+        private void OnClick_I2cWriteButton( object sender, RoutedEventArgs e )
+        {
+
+        }
+
+
+        private void OnClick_I2cReadButton( object sender, RoutedEventArgs e )
+        {
+
+        }
+
+
 
         //******************************************************************************
         //* UI Support Functions
@@ -222,6 +264,8 @@ namespace remote_wiring_experience
             bitmaps.Add( "high", new BitmapImage( new Uri( BaseUri, @"Assets/high.png" ) ) );
             bitmaps.Add( "low", new BitmapImage( new Uri( BaseUri, @"Assets/low.png" ) ) );
             bitmaps.Add( "analog", new BitmapImage( new Uri( BaseUri, @"Assets/analog.png" ) ) );
+            bitmaps.Add( "enabled", new BitmapImage( new Uri( BaseUri, @"Assets/enabled.png" ) ) );
+            bitmaps.Add( "enablei2c", new BitmapImage( new Uri( BaseUri, @"Assets/enablei2c.png" ) ) );
 
             for( int i = 0; i < numberOfAnalogPins; ++i )
             {
@@ -304,6 +348,18 @@ namespace remote_wiring_experience
         private void UpdateI2cControls()
         {
             if( !uiControlsLoaded["I2C"] ) loadI2cControls();
+
+            if( isI2cEnabled )
+            {
+                I2cToggleImage.Source = bitmaps["enabled"];
+                
+                I2cReplyProcessPanel.Children.Clear();
+                I2cReplyProcessPanel.Children.Add( new FunctionPanel() );
+            }
+            else
+            {
+                I2cToggleImage.Source = bitmaps["enablei2c"];
+            }
         }
 
 
@@ -437,7 +493,9 @@ namespace remote_wiring_experience
         /// </summary>
         private void loadI2cControls()
         {
-            //throw new NotImplementedException();
+            var stack = new StackPanel();
+            stack.Orientation = Orientation.Horizontal;
+            stack.FlowDirection = FlowDirection.LeftToRight;
         }
 
         /// <summary>
@@ -493,7 +551,13 @@ namespace remote_wiring_experience
             if( !analogModeImages.ContainsKey( pin ) ) return;
 
             ImageSource image;
-            switch( arduino.getPinMode( ConvertAnalogPinToPinNumber( pin ) ) )
+            var analogPinNumber = ConvertAnalogPinToPinNumber( pin );
+
+            if( isI2cEnabled && ( analogPinNumber == i2cPins[0] || analogPinNumber == i2cPins[1] ) )
+            {
+                image = bitmaps["disabled_a" + pin];
+            }
+            else switch( arduino.getPinMode( analogPinNumber ) )
             {
                 case PinMode.ANALOG:
                     image = bitmaps["input_a" + pin];

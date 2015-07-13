@@ -9,6 +9,7 @@ using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Notifications;
 using Windows.UI.Xaml.Controls.Primitives;
 using Microsoft.Maker.RemoteWiring;
+using System.Diagnostics;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -190,7 +191,7 @@ namespace remote_wiring_experience
 
             if( arduino.getPinMode( pin ) != PinMode.OUTPUT )
             {
-                showToast( "Incorrect PinMode!", "You must first set this pin to OUTPUT", null );
+                ShowToast( "Incorrect PinMode!", "You must first set this pin to OUTPUT", null );
                 return;
             }
 
@@ -241,13 +242,78 @@ namespace remote_wiring_experience
 
         private void OnClick_I2cWriteButton( object sender, RoutedEventArgs e )
         {
+            if( string.IsNullOrEmpty( I2cAddressTextBox.Text ) || string.IsNullOrEmpty( I2cRegisterTextBox.Text ) )
+            {
+                ShowToast( "Nothing sent.", "You must specify an address and register.", null );
+                return;
+            }
 
+            try
+            {
+                int address = ParseDecimalValueOrThrow( I2cAddressTextBox.Text );
+                int register = ParseDecimalValueOrThrow( I2cRegisterTextBox.Text );
+                if( address > 255 || register > 255 )
+                {
+                    ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
+                    return;
+                }
+
+                //it is OK to not send any data with your message
+                string message = I2cWriteDataTextBox.Text;
+                int[] bytes = null;
+
+                if( !string.IsNullOrEmpty( message ) )
+                {
+                    string[] byteStrings = I2cWriteDataTextBox.Text.Split( new char[] { ' ' } );
+                    bytes = new int[byteStrings.Length];
+                    for( int i = 0; i < byteStrings.Length; ++i )
+                    {
+                        bytes[i] = ParseDecimalValueOrThrow( byteStrings[i] );
+                        if( bytes[i] > 255 )
+                        {
+                            ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
+                            return;
+                        }
+                    }
+                }
+
+                arduino.I2c.beginTransmission( (byte)address );
+                arduino.I2c.write( (byte)register );
+                if( bytes != null )
+                {
+                    foreach( int val in bytes )
+                    {
+                        arduino.I2c.write( (byte)val );
+                    }
+                }
+                arduino.I2c.endTransmission();
+            }
+            catch( FormatException )
+            {
+                ShowToast( "Invalid address, register, or data", "Enter numbers in decimal, hex, or binary", null );
+            }
         }
 
+        private int ParseDecimalValueOrThrow( string text )
+        {
+            if( string.IsNullOrEmpty( text ) ) throw new FormatException();
+
+            //did they enter a number in binary or hex format?
+            if( text.Contains( "x" ) )
+            {
+                return Convert.ToInt32( text.Substring( text.IndexOf( "x" ) + 1 ), 16 );
+            }
+            else if( text.Contains( "b" ) )
+            {
+                return Convert.ToInt32( text.Substring( text.IndexOf( 'b' ) + 1 ), 2 );
+            }
+
+            return Convert.ToInt32( text );
+        }
 
         private void OnClick_I2cReadButton( object sender, RoutedEventArgs e )
         {
-
+            Debug.WriteLine( "read" );
         }
 
 
@@ -625,7 +691,7 @@ namespace remote_wiring_experience
         /// <param name="heading">A required heading</param>
         /// <param name="body">A required body</param>
         /// <param name="body2">an optional second body</param>
-        private void showToast( string heading, string body, string body2 )
+        private void ShowToast( string heading, string body, string body2 )
         {
             var builder = new StringBuilder();
             builder.Append( "<toast><visual version='1'><binding template='ToastText04'><text id='1'>" )

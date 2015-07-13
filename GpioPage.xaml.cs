@@ -106,19 +106,6 @@ namespace remote_wiring_experience
         }
 
 
-        /// <summary>
-        /// Arduino numbers their analog pins directly after the digital pins. Meaning A0 is actally pin 14 on an Uno,
-        /// because there are 14 digital pins on an Uno. Therefore, when we're working with functions that don't know the
-        /// difference between Analog and Digital pin numbers, we need to convert pin 0 (meaning A0) into pin + numberOfDigitalPins
-        /// </summary>
-        /// <param name="pin"></param>
-        /// <returns></returns>
-        private byte ConvertAnalogPinToPinNumber( byte pin )
-        {
-            return (byte)( pin + numberOfDigitalPins );
-        }
-
-
         //******************************************************************************
         //* Button Callbacks
         //******************************************************************************
@@ -148,11 +135,13 @@ namespace remote_wiring_experience
                 {
                     isI2cEnabled = false;
                     arduino.pinMode( i2cPins[1], PinMode.OUTPUT );
+                    arduino.I2c.I2cReplyEvent -= I2c_I2cReplyEvent;
                 }
                 else if( i2cPins[1] == analogPinNumber )
                 {
                     isI2cEnabled = false;
                     arduino.pinMode( i2cPins[0], PinMode.OUTPUT );
+                    arduino.I2c.I2cReplyEvent -= I2c_I2cReplyEvent;
                 }
             }
 
@@ -234,29 +223,24 @@ namespace remote_wiring_experience
             if( !isI2cEnabled )
             {
                 arduino.I2c.enable();
+                arduino.I2c.I2cReplyEvent += I2c_I2cReplyEvent;
                 isI2cEnabled = true;
             }
             UpdateI2cControls();
         }
 
+        private void I2c_I2cReplyEvent( byte address_, byte reg_, Windows.Storage.Streams.DataReader response )
+        {
+            throw new NotImplementedException();
+        }
 
         private void OnClick_I2cWriteButton( object sender, RoutedEventArgs e )
         {
-            if( string.IsNullOrEmpty( I2cAddressTextBox.Text ) || string.IsNullOrEmpty( I2cRegisterTextBox.Text ) )
-            {
-                ShowToast( "Nothing sent.", "You must specify an address and register.", null );
-                return;
-            }
-
             try
             {
-                int address = ParseDecimalValueOrThrow( I2cAddressTextBox.Text );
-                int register = ParseDecimalValueOrThrow( I2cRegisterTextBox.Text );
-                if( address > 255 || register > 255 )
-                {
-                    ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
-                    return;
-                }
+                int address;
+                int register;
+                if( !VerifyAddressAndRegister( out address, out register ) ) return;
 
                 //it is OK to not send any data with your message
                 string message = I2cWriteDataTextBox.Text;
@@ -294,26 +278,44 @@ namespace remote_wiring_experience
             }
         }
 
-        private int ParseDecimalValueOrThrow( string text )
-        {
-            if( string.IsNullOrEmpty( text ) ) throw new FormatException();
-
-            //did they enter a number in binary or hex format?
-            if( text.Contains( "x" ) )
-            {
-                return Convert.ToInt32( text.Substring( text.IndexOf( "x" ) + 1 ), 16 );
-            }
-            else if( text.Contains( "b" ) )
-            {
-                return Convert.ToInt32( text.Substring( text.IndexOf( 'b' ) + 1 ), 2 );
-            }
-
-            return Convert.ToInt32( text );
-        }
-
         private void OnClick_I2cReadButton( object sender, RoutedEventArgs e )
         {
-            Debug.WriteLine( "read" );
+            if( string.IsNullOrEmpty( I2cReadQuantityTextBox.Text ) )
+            {
+                ShowToast( "Nothing sent.", "You must specify how many bytes to read.", null );
+                return;
+            }
+
+            try
+            {
+                int address;
+                int register;
+                if( !VerifyAddressAndRegister( out address, out register ) ) return;
+
+                int read = ParseDecimalValueOrThrow( I2cReadQuantityTextBox.Text );
+                if( read > 255 )
+                {
+                    ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
+                    return;
+                }
+
+                arduino.I2c.requestFrom( (byte)address, (byte)read );
+
+            }
+            catch( FormatException )
+            {
+                ShowToast( "Invalid read quantity", "You must enter a number value.", null );
+            }
+        }
+
+        /// <summary>
+        /// This function is invoked when the Read Quantity text box is modified
+        /// </summary>
+        /// <param name="sender"></param>
+        /// <param name="e"></param>
+        private void OnTextChanged_I2cReadQuantityTextBox( object sender, TextChangedEventArgs e )
+        {
+            I2cReadButton.IsEnabled = !string.IsNullOrEmpty( I2cReadQuantityTextBox.Text );
         }
 
 
@@ -676,16 +678,6 @@ namespace remote_wiring_experience
         }
 
         /// <summary>
-        /// retrieves the pin number associated with a button object
-        /// </summary>
-        /// <param name="button">the button to retrieve a pin number from</param>
-        /// <returns>the pin number</returns>
-        private byte GetPinFromButtonObject( Button button )
-        {
-            return Convert.ToByte( button.Name.Substring( button.Name.IndexOf( '_' ) + 1 ) );
-        }
-
-        /// <summary>
         /// displays a toast with the given heading, body, and optional second body
         /// </summary>
         /// <param name="heading">A required heading</param>
@@ -715,6 +707,87 @@ namespace remote_wiring_experience
             toastDom.LoadXml( builder.ToString() );
             var toast = new ToastNotification( toastDom );
             ToastNotificationManager.CreateToastNotifier().Show( toast );
+        }
+
+
+        //******************************************************************************
+        //* Utility Functions
+        //******************************************************************************
+
+        /// <summary>
+        /// retrieves the pin number associated with a button object
+        /// </summary>
+        /// <param name="button">the button to retrieve a pin number from</param>
+        /// <returns>the pin number</returns>
+        private byte GetPinFromButtonObject( Button button )
+        {
+            return Convert.ToByte( button.Name.Substring( button.Name.IndexOf( '_' ) + 1 ) );
+        }
+
+        /// <summary>
+        /// Parses a string to retrieve an int value. Strings may be in hex (0x??)
+        /// binary (0b????????) or decimal. Leading 0 not necessary.
+        /// </summary>
+        /// <param name="text"></param>
+        /// <returns></returns>
+        private int ParseDecimalValueOrThrow( string text )
+        {
+            if( string.IsNullOrEmpty( text ) ) throw new FormatException();
+
+            //did they enter a number in binary or hex format?
+            if( text.Contains( "x" ) )
+            {
+                return Convert.ToInt32( text.Substring( text.IndexOf( "x" ) + 1 ), 16 );
+            }
+            else if( text.Contains( "b" ) )
+            {
+                return Convert.ToInt32( text.Substring( text.IndexOf( 'b' ) + 1 ), 2 );
+            }
+
+            return Convert.ToInt32( text );
+        }
+
+
+        /// <summary>
+        /// Arduino numbers their analog pins directly after the digital pins. Meaning A0 is actally pin 14 on an Uno,
+        /// because there are 14 digital pins on an Uno. Therefore, when we're working with functions that don't know the
+        /// difference between Analog and Digital pin numbers, we need to convert pin 0 (meaning A0) into pin + numberOfDigitalPins
+        /// </summary>
+        /// <param name="pin"></param>
+        /// <returns></returns>
+        private byte ConvertAnalogPinToPinNumber( byte pin )
+        {
+            return (byte)( pin + numberOfDigitalPins );
+        }
+
+
+        /// <summary>
+        /// Verifies that the address and register text fields are valid and parses the values if so.
+        /// </summary>
+        /// <param name="address">the address variable to be updated</param>
+        /// <param name="register">the register variable to be updated</param>
+        /// <returns></returns>
+        private bool VerifyAddressAndRegister( out int address, out int register )
+        {
+            if( string.IsNullOrEmpty( I2cAddressTextBox.Text ) || string.IsNullOrEmpty( I2cRegisterTextBox.Text ) )
+            {
+                ShowToast( "Nothing sent.", "You must specify an address and register.", null );
+                address = -1;
+                register = -1;
+                return false;
+            }
+
+            address = ParseDecimalValueOrThrow( I2cAddressTextBox.Text );
+            register = ParseDecimalValueOrThrow( I2cRegisterTextBox.Text );
+            if( address > 255 || register > 255 )
+            {
+                ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
+                address = -1;
+                register = -1;
+                return false;
+            }
+
+            return true;
         }
     }
 }

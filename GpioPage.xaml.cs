@@ -78,6 +78,11 @@ namespace remote_wiring_experience
             arduino.AnalogPinUpdatedEvent += Arduino_AnalogPinUpdatedEvent;
         }
 
+
+        //******************************************************************************
+        //* Windows Remote Arduino callbacks
+        //******************************************************************************
+
         /// <summary>
         /// This function is called when the Windows Remote Arduino library reports that an input value has changed for an analog pin.
         /// </summary>
@@ -104,6 +109,39 @@ namespace remote_wiring_experience
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
                 UpdateDigitalPinStateIndicator( pin );
+            } ) );
+        }
+
+        /// <summary>
+        /// This function is called when the Windows Remote Arduino library receives a reply from the device in response to an I2C read request.
+        /// </summary>
+        /// <param name="address_">The address which is replying</param>
+        /// <param name="reg_">The register which is replying</param>
+        /// <param name="response">A datareader containing the raw reponse bytes from the device.</param>
+        private void I2c_I2cReplyEvent( byte address_, byte reg_, Windows.Storage.Streams.DataReader response )
+        {
+            //we must dispatch the change to the UI thread to change the indicator image
+            var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
+            {
+                var builder = new StringBuilder();
+                var bytes = new byte[response.UnconsumedBufferLength];
+                response.ReadBytes( bytes );
+                
+                for( int i = 0; i < bytes.Length; ++i )
+                {
+                    builder.Append( "[" ).Append( bytes[i].ToString( "x" ) ).Append( "] " );
+                }
+                I2cRawReplyTextBox.Text = builder.ToString().TrimEnd();
+
+                try
+                {
+                    double processed = functionPanel.ProcessI2cReply( bytes );
+                    I2cProcessedReplyTextBox.Text = processed.ToString();
+                }
+                catch( Exception )
+                {
+                    I2cProcessedReplyTextBox.Text = "";
+                }
             } ) );
         }
 
@@ -231,11 +269,6 @@ namespace remote_wiring_experience
             UpdateI2cControls();
         }
 
-        private void I2c_I2cReplyEvent( byte address_, byte reg_, Windows.Storage.Streams.DataReader response )
-        {
-            throw new NotImplementedException();
-        }
-
         private void OnClick_I2cWriteButton( object sender, RoutedEventArgs e )
         {
             try
@@ -326,8 +359,9 @@ namespace remote_wiring_experience
             }
             catch( FormatException )
             {
-                //do nothing
+                I2cReadButton.IsEnabled = false;
             }
+
             functionPanel.NumberOfBytes = num;
         }
 
@@ -433,7 +467,8 @@ namespace remote_wiring_experience
             if( isI2cEnabled )
             {
                 I2cToggleImage.Source = bitmaps["enabled"];
-                
+
+                I2cVisibilityPanel.Visibility = Visibility.Visible;
                 I2cReplyProcessPanel.Children.Clear();
                 functionPanel = new FunctionPanel( 0 );
                 I2cReplyProcessPanel.Children.Add( functionPanel );
@@ -441,6 +476,7 @@ namespace remote_wiring_experience
             else
             {
                 I2cToggleImage.Source = bitmaps["enablei2c"];
+                I2cVisibilityPanel.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -564,12 +600,12 @@ namespace remote_wiring_experience
                 button.Name = "digitalstate_" + i;
                 button.Click += OnClick_DigitalStateToggleButton;
                 stack.Children.Add( button );
-                
+
                 DigitalControls.Children.Add( stack );
             }
         }
 
-        
+
         /// <summary>
         /// Adds the necessary i2c controls to the i2c pivot page, this will only be called the first time this pivot page is loaded
         /// </summary>
@@ -639,20 +675,21 @@ namespace remote_wiring_experience
             {
                 image = bitmaps["disabled_a" + pin];
             }
-            else switch( arduino.getPinMode( analogPinNumber ) )
-            {
-                case PinMode.ANALOG:
-                    image = bitmaps["input_a" + pin];
-                    break;
+            else
+                switch( arduino.getPinMode( analogPinNumber ) )
+                {
+                    case PinMode.ANALOG:
+                        image = bitmaps["input_a" + pin];
+                        break;
 
-                case PinMode.I2C:
-                    image = bitmaps["disabled_a" + pin];
-                    break;
+                    case PinMode.I2C:
+                        image = bitmaps["disabled_a" + pin];
+                        break;
 
-                default:
-                    image = bitmaps["none_a" + pin];
-                    break;
-            }
+                    default:
+                        image = bitmaps["none_a" + pin];
+                        break;
+                }
 
             analogModeImages[pin].Source = image;
         }

@@ -16,7 +16,8 @@ namespace remote_wiring_experience
         LEFTSHIFT,
         RIGHTSHIFT,
         AND,
-        OR
+        OR,
+        STORE
     }
 
     class Function
@@ -28,7 +29,7 @@ namespace remote_wiring_experience
             this.function = function;
         }
 
-        public double process( double a, double b )
+        public double Process( double a, double b )
         {
             switch( function )
             {
@@ -42,7 +43,7 @@ namespace remote_wiring_experience
                     return a * b;
 
                 case FunctionType.DIVIDE:
-                    return a - b;
+                    return a / b;
 
                 case FunctionType.LEFTSHIFT:
                     return ( ( (int)a ) << ( (int)b ) );
@@ -58,6 +59,7 @@ namespace remote_wiring_experience
 
                 default:
                 case FunctionType.NONE:
+                case FunctionType.STORE:
                     return a;
             }
         }
@@ -89,6 +91,9 @@ namespace remote_wiring_experience
 
                 case FunctionType.OR:
                     return "|";
+
+                case FunctionType.STORE:
+                    return "Store as:";
 
                 default:
                 case FunctionType.NONE:

@@ -25,7 +25,7 @@
                     <Button Name="I2cToggleButton" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="5, 10, 5, 10" Click="OnClick_I2cToggleButton">
                         <Image Name="I2cToggleImage" Stretch="None"/>
                     </Button>
-                    <StackPanel Name="I2cVisibilityPanel" Visibility="Visible">
+                    <StackPanel Name="I2cVisibilityPanel" Visibility="Collapsed">
                         <Grid Padding="5" HorizontalAlignment="Stretch" FlowDirection="LeftToRight" BorderThickness="3" BorderBrush="Black">
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="1*"/>

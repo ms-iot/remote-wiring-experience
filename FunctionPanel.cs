@@ -9,8 +9,31 @@ namespace remote_wiring_experience
 {
     class FunctionPanel : StackPanel
     {
-        public FunctionPanel()
+        private uint numberOfBytes;
+
+        /// <summary>
+        /// Allows the number of bytes expected in an I2C reply to be changed without drastically re-configuring the UI
+        /// </summary>
+        public uint NumberOfBytes
         {
+            get
+            {
+                return numberOfBytes;
+            }
+            set
+            {
+                numberOfBytes = value;
+                for( int i = 0; i < Children.Count - 1; ++i )
+                {
+                    var functionElement = Children[i] as FunctionElement;
+                    functionElement.ResetTargetComboBox( numberOfBytes );
+                }
+            }
+        }
+
+        public FunctionPanel( uint numberOfBytes )
+        {
+            this.numberOfBytes = numberOfBytes;
             Orientation = Orientation.Vertical;
             FlowDirection = FlowDirection.LeftToRight;
             HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -40,65 +63,23 @@ namespace remote_wiring_experience
             AddFunctionElement();
         }
 
+        /// <summary>
+        /// Adds a function element to the UI for programming
+        /// </summary>
         public void AddFunctionElement()
         {
             Children.Insert( Children.Count - 1, CreateFunctionElement() );
         }
 
-        private static UIElement CreateFunctionElement()
+        /// <summary>
+        /// Creates a function element which can be set to perform one operation of a (optional) series
+        /// </summary>
+        /// <returns></returns>
+        private UIElement CreateFunctionElement()
         {
-            var stack = new StackPanel();
-            stack.Orientation = Orientation.Vertical;
-            
-            var text = new TextBlock();
-            text.Text = "Then:";
-            stack.Children.Add( text );
-
-            var functionstack = new StackPanel();
-            functionstack.Orientation = Orientation.Horizontal;
-            functionstack.FlowDirection = FlowDirection.LeftToRight;
-            functionstack.Margin = new Thickness( 5 );
-            functionstack.BorderBrush = new SolidColorBrush( Color.FromArgb( 255, 0, 0, 0 ) );
-            functionstack.BorderThickness = new Thickness( 2 );
-
-            var itemstack = new StackPanel();
-            itemstack.Margin = new Thickness( 5 );
-            itemstack.Orientation = Orientation.Vertical;
-            text = new TextBlock();
-            text.Text = "Function:";
-            itemstack.Children.Add( text );
-
-            var combo = new ComboBox();
-            foreach( Function function in Enum.GetValues( typeof( Function ) ) )
-            {
-                combo.Items.Add( new SingleFunction( function ) );
-            }
-            itemstack.Children.Add( combo );
-
-            functionstack.Children.Add( itemstack );
-
-            itemstack = new StackPanel();
-            itemstack.Margin = new Thickness( 5 );
-
-            text = new TextBlock();
-            text.Text = "Target:";
-            itemstack.Children.Add( text );
-
-            combo = new ComboBox();
-            combo.Items.Add( "Value" );
-            combo.Items.Add( "Byte index" );
-            itemstack.Children.Add( combo );
-
-            functionstack.Children.Add( itemstack );
-
-            var box = new TextBox();
-            box.HorizontalAlignment = HorizontalAlignment.Stretch;
-            box.VerticalAlignment = VerticalAlignment.Center;
-            box.Margin = new Thickness( 5, 12, 5, 0 );
-            functionstack.Children.Add( box );
-
-            stack.Children.Add( functionstack );
-            return stack;
+            var element = new FunctionElement();
+            element.ResetTargetComboBox( numberOfBytes );
+            return element;
         }
     }
 }

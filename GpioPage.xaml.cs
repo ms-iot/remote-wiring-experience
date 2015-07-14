@@ -31,6 +31,8 @@ namespace remote_wiring_experience
         private static byte[] i2cPins = { 18, 19 };
         private bool isI2cEnabled = false;
 
+        private FunctionPanel functionPanel;
+
         //stores image assets so that they can be loaded once and reused many times
         private Dictionary<String, BitmapImage> bitmaps;
 
@@ -238,21 +240,21 @@ namespace remote_wiring_experience
         {
             try
             {
-                int address;
-                int register;
+                uint address;
+                uint register;
                 if( !VerifyAddressAndRegister( out address, out register ) ) return;
 
                 //it is OK to not send any data with your message
                 string message = I2cWriteDataTextBox.Text;
-                int[] bytes = null;
+                uint[] bytes = null;
 
                 if( !string.IsNullOrEmpty( message ) )
                 {
                     string[] byteStrings = I2cWriteDataTextBox.Text.Split( new char[] { ' ' } );
-                    bytes = new int[byteStrings.Length];
+                    bytes = new uint[byteStrings.Length];
                     for( int i = 0; i < byteStrings.Length; ++i )
                     {
-                        bytes[i] = ParseDecimalValueOrThrow( byteStrings[i] );
+                        bytes[i] = ParsePositiveDecimalValueOrThrow( byteStrings[i] );
                         if( bytes[i] > 255 )
                         {
                             ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
@@ -288,11 +290,11 @@ namespace remote_wiring_experience
 
             try
             {
-                int address;
-                int register;
+                uint address;
+                uint register;
                 if( !VerifyAddressAndRegister( out address, out register ) ) return;
 
-                int read = ParseDecimalValueOrThrow( I2cReadQuantityTextBox.Text );
+                uint read = ParsePositiveDecimalValueOrThrow( I2cReadQuantityTextBox.Text );
                 if( read > 255 )
                 {
                     ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
@@ -316,6 +318,17 @@ namespace remote_wiring_experience
         private void OnTextChanged_I2cReadQuantityTextBox( object sender, TextChangedEventArgs e )
         {
             I2cReadButton.IsEnabled = !string.IsNullOrEmpty( I2cReadQuantityTextBox.Text );
+
+            uint num = 0;
+            try
+            {
+                num = ParsePositiveDecimalValueOrThrow( I2cReadQuantityTextBox.Text );
+            }
+            catch( FormatException )
+            {
+                //do nothing
+            }
+            functionPanel.NumberOfBytes = num;
         }
 
 
@@ -422,7 +435,8 @@ namespace remote_wiring_experience
                 I2cToggleImage.Source = bitmaps["enabled"];
                 
                 I2cReplyProcessPanel.Children.Clear();
-                I2cReplyProcessPanel.Children.Add( new FunctionPanel() );
+                functionPanel = new FunctionPanel( 0 );
+                I2cReplyProcessPanel.Children.Add( functionPanel );
             }
             else
             {
@@ -730,21 +744,29 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="text"></param>
         /// <returns></returns>
-        private int ParseDecimalValueOrThrow( string text )
+        private uint ParsePositiveDecimalValueOrThrow( string text )
         {
             if( string.IsNullOrEmpty( text ) ) throw new FormatException();
+
+            int val;
 
             //did they enter a number in binary or hex format?
             if( text.Contains( "x" ) )
             {
-                return Convert.ToInt32( text.Substring( text.IndexOf( "x" ) + 1 ), 16 );
+                val = Convert.ToInt32( text.Substring( text.IndexOf( "x" ) + 1 ), 16 );
             }
             else if( text.Contains( "b" ) )
             {
-                return Convert.ToInt32( text.Substring( text.IndexOf( 'b' ) + 1 ), 2 );
+                val = Convert.ToInt32( text.Substring( text.IndexOf( 'b' ) + 1 ), 2 );
+            }
+            else
+            {
+                val = Convert.ToInt32( text );
             }
 
-            return Convert.ToInt32( text );
+            if( val < 0 ) throw new FormatException();
+
+            return (uint)val;
         }
 
 
@@ -767,23 +789,23 @@ namespace remote_wiring_experience
         /// <param name="address">the address variable to be updated</param>
         /// <param name="register">the register variable to be updated</param>
         /// <returns></returns>
-        private bool VerifyAddressAndRegister( out int address, out int register )
+        private bool VerifyAddressAndRegister( out uint address, out uint register )
         {
             if( string.IsNullOrEmpty( I2cAddressTextBox.Text ) || string.IsNullOrEmpty( I2cRegisterTextBox.Text ) )
             {
                 ShowToast( "Nothing sent.", "You must specify an address and register.", null );
-                address = -1;
-                register = -1;
+                address = 0;
+                register = 0;
                 return false;
             }
 
-            address = ParseDecimalValueOrThrow( I2cAddressTextBox.Text );
-            register = ParseDecimalValueOrThrow( I2cRegisterTextBox.Text );
+            address = ParsePositiveDecimalValueOrThrow( I2cAddressTextBox.Text );
+            register = ParsePositiveDecimalValueOrThrow( I2cRegisterTextBox.Text );
             if( address > 255 || register > 255 )
             {
                 ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
-                address = -1;
-                register = -1;
+                address = 0;
+                register = 0;
                 return false;
             }
 

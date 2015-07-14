@@ -53,8 +53,8 @@
                         <StackPanel Padding="5" HorizontalAlignment="Stretch" FlowDirection="LeftToRight" BorderThickness="3" BorderBrush="Black">
                             <TextBlock HorizontalAlignment="Center" VerticalAlignment="Top" Text="Number of bytes to read"/>
                             <TextBox Name="I2cReadQuantityTextBox" Margin="5" HorizontalAlignment="Stretch" AcceptsReturn="False" InputScope="Number" TextChanged="OnTextChanged_I2cReadQuantityTextBox"/>
-                            <TextBlock Name="I2cRawReplyTextBox" Text="Your raw reply will be displayed here, byte by byte."/>
-                            <TextBlock Name="I2cProcessedReplyTextBox" Text="If you further process your reply, it will be displayed here."/>
+                            <TextBlock Name="I2cRawReplyTextBox" HorizontalAlignment="Center" Text="Your raw reply will be displayed here, byte by byte."/>
+                            <TextBlock Name="I2cProcessedReplyTextBox" HorizontalAlignment="Center" Text="If you further process your reply, it will be displayed here."/>
                             
                             <StackPanel Name="I2cReplyProcessPanel" Orientation="Vertical">
                             </StackPanel>

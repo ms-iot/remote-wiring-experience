@@ -113,36 +113,26 @@ namespace remote_wiring_experience
             }
 
             //use the selected device to create our communication object
-            switch( ConnectionMethodComboBox.SelectedIndex )
+            switch( ConnectionMethodComboBox.SelectedItem as String )
             {
-                //bluetooth
                 default:
-                case 0:
-                    BluetoothSerial bluetooth = new BluetoothSerial( device );
-                    bluetooth.ConnectionEstablished += OnConnectionEstablished;
-                    bluetooth.ConnectionFailed += OnConnectionFailed;
-                    App.Connection = bluetooth;
+                case "Bluetooth":
+                    App.Connection = new BluetoothSerial( device );
                     break;
-
-                //usb
-                case 1:
-                    UsbSerial usb = new UsbSerial( device );
-                    usb.ConnectionEstablished += OnConnectionEstablished;
-                    usb.ConnectionFailed += OnConnectionFailed;
-                    App.Connection = usb;
+                    
+                case "USB":
+                    App.Connection = new UsbSerial( device );
                     break;
-
-                //network
-                case 2:
-                    NetworkSerial net = new NetworkSerial( new Windows.Networking.HostName( "192.168.1.120" ), 5000 );
-                    net.ConnectionEstablished += OnConnectionEstablished;
-                    net.ConnectionFailed += OnConnectionFailed;
-                    App.Connection = net;
+                    
+                case "Network":
+                    App.Connection = new NetworkSerial( new Windows.Networking.HostName( "192.168.1.120" ), 5000 );
                     break;
             }
 
             App.Arduino = new RemoteDevice( App.Connection );
             App.Connection.begin( 115200, SerialConfig.SERIAL_8N1 );
+            App.Connection.ConnectionEstablished += OnConnectionEstablished;
+            App.Connection.ConnectionFailed += OnConnectionFailed;
 
             //start a timer for connection timeout
             timeout = new DispatcherTimer();

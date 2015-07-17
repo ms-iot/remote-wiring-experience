@@ -72,7 +72,7 @@ namespace remote_wiring_experience
         protected override void OnNavigatedTo( NavigationEventArgs e )
         {
             base.OnNavigatedTo( e );
-            loadAssets();
+            LoadAssets();
             arduino = App.Arduino;
             arduino.DigitalPinUpdatedEvent += Arduino_DigitalPinUpdatedEvent;
             arduino.AnalogPinUpdatedEvent += Arduino_AnalogPinUpdatedEvent;
@@ -374,7 +374,7 @@ namespace remote_wiring_experience
         /// <summary>
         /// This function loads all of the necessary bitmaps that will be used by this program into the resource dictionary
         /// </summary>
-        private void loadAssets()
+        private void LoadAssets()
         {
             bitmaps.Add( "high", new BitmapImage( new Uri( BaseUri, @"Assets/high.png" ) ) );
             bitmaps.Add( "low", new BitmapImage( new Uri( BaseUri, @"Assets/low.png" ) ) );
@@ -716,7 +716,7 @@ namespace remote_wiring_experience
             switch( arduino.getPinMode( pin ) )
             {
                 case PinMode.PWM:
-                    image = bitmaps["output_" + pin];
+                    image = bitmaps["pwm_" + pin];
                     break;
 
                 default:
@@ -788,11 +788,11 @@ namespace remote_wiring_experience
             int val;
 
             //did they enter a number in binary or hex format?
-            if( text.Contains( "x" ) )
+            if( text.ToLower().Contains( "x" ) )
             {
                 val = Convert.ToInt32( text.Substring( text.IndexOf( "x" ) + 1 ), 16 );
             }
-            else if( text.Contains( "b" ) )
+            else if( text.ToLower().Contains( "b" ) )
             {
                 val = Convert.ToInt32( text.Substring( text.IndexOf( 'b' ) + 1 ), 2 );
             }

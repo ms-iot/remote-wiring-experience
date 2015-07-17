@@ -16,8 +16,7 @@ namespace remote_wiring_experience
         LEFTSHIFT,
         RIGHTSHIFT,
         AND,
-        OR,
-        STORE
+        OR
     }
 
     class Function
@@ -59,7 +58,6 @@ namespace remote_wiring_experience
 
                 default:
                 case FunctionType.NONE:
-                case FunctionType.STORE:
                     return a;
             }
         }
@@ -91,9 +89,6 @@ namespace remote_wiring_experience
 
                 case FunctionType.OR:
                     return "|";
-
-                case FunctionType.STORE:
-                    return "Store as:";
 
                 default:
                 case FunctionType.NONE:

@@ -72,6 +72,7 @@ namespace remote_wiring_experience
                         {
                             connections.Add( new Connection( device.Name, device ) );
                         }
+                        ConnectMessage.Text = "Select an item and press \"Connect\" to connect.";
                     }
 
                     ConnectionList.ItemsSource = connections;

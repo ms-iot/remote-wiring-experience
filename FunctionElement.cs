@@ -89,11 +89,11 @@ namespace remote_wiring_experience
                 string text = valueTextBox.Text;
 
                 //did they enter a number in binary or hex format?
-                if( text.Contains( "x" ) )
+                if( text.ToLower().Contains( "x" ) )
                 {
                     operand2 = Convert.ToInt32( text.Substring( text.IndexOf( "x" ) + 1 ), 16 );
                 }
-                else if( text.Contains( "b" ) )
+                else if( text.ToLower().Contains( "b" ) )
                 {
                     operand2 = Convert.ToInt32( text.Substring( text.IndexOf( 'b' ) + 1 ), 2 );
                 }
@@ -199,7 +199,7 @@ namespace remote_wiring_experience
         private void OnSelectionChanged_Operand2ComboBox( object sender, SelectionChangedEventArgs e )
         {
             var combo = sender as ComboBox;
-            if( combo.SelectedItem.Equals( "Value" ) )
+            if( combo.SelectedItem != null && combo.SelectedItem.Equals( "Value" ) )
             {
                 valueTextBox.Visibility = Visibility.Visible;
             }

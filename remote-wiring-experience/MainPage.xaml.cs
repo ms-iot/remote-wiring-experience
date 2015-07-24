@@ -7,6 +7,7 @@ using Windows.UI.Xaml.Controls;
 using Windows.UI.Xaml.Navigation;
 using Microsoft.Maker.Serial;
 using Microsoft.Maker.RemoteWiring;
+using System.Threading;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -18,6 +19,7 @@ namespace remote_wiring_experience
     public sealed partial class MainPage : Page
     {
         DispatcherTimer timeout;
+        CancellationTokenSource cancelTokenSource;
 
         public MainPage()
         {
@@ -39,61 +41,114 @@ namespace remote_wiring_experience
         {
             //invoke the listAvailableDevicesAsync method of the correct Serial class. Since it is Async, we will wrap it in a Task and add a llambda to execute when finished
             Task<DeviceInformationCollection> task = null;
-            switch( ConnectionMethodComboBox.SelectedIndex )
+            if( ConnectionMethodComboBox.SelectedItem == null )
             {
-                //bluetooth
+                ConnectMessage.Text = "Select a connection method to continue.";
+                return;
+            }
+
+            switch( ConnectionMethodComboBox.SelectedItem as String )
+            {
                 default:
-                case 0:
-                    task = BluetoothSerial.listAvailableDevicesAsync().AsTask<DeviceInformationCollection>();
+                case "Bluetooth":
+                    ConnectionList.Visibility = Visibility.Visible;
+                    NetworkConnectionGrid.Visibility = Visibility.Collapsed;
+
+                    //create a cancellation token which can be used to cancel a task
+                    cancelTokenSource = new CancellationTokenSource();
+                    cancelTokenSource.Token.Register( () => OnConnectionCancelled() );
+
+                    task = BluetoothSerial.listAvailableDevicesAsync().AsTask<DeviceInformationCollection>( cancelTokenSource.Token );
+                    break;
+                    
+                case "USB":
+                    ConnectionList.Visibility = Visibility.Visible;
+                    NetworkConnectionGrid.Visibility = Visibility.Collapsed;
+
+                    //create a cancellation token which can be used to cancel a task
+                    cancelTokenSource = new CancellationTokenSource();
+                    cancelTokenSource.Token.Register( () => OnConnectionCancelled() );
+
+                    task = UsbSerial.listAvailableDevicesAsync().AsTask<DeviceInformationCollection>( cancelTokenSource.Token );
                     break;
 
-                //usb
-                case 1:
-                    task = UsbSerial.listAvailableDevicesAsync().AsTask<DeviceInformationCollection>();
+                case "Network":
+                    ConnectionList.Visibility = Visibility.Collapsed;
+                    NetworkConnectionGrid.Visibility = Visibility.Visible;
+                    ConnectMessage.Text = "Enter a host and port to connect";
+                    task = null;
                     break;
             }
 
-            //store the returned DeviceInformation items when the task completes
-            task.ContinueWith( listTask =>
+            if( task != null )
             {
+                //store the returned DeviceInformation items when the task completes
+                task.ContinueWith( listTask =>
+                {
                 //store the result and populate the device list on the UI thread
                 var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
-                {
-                    Connections connections = new Connections();
+                    {
+                        Connections connections = new Connections();
 
-                    var result = listTask.Result;
-                    if( result == null || result.Count == 0 )
-                    {
-                        ConnectMessage.Text = "No items found.";
-                    }
-                    else
-                    {
-                        foreach( DeviceInformation device in result )
+                        var result = listTask.Result;
+                        if( result == null || result.Count == 0 )
                         {
-                            connections.Add( new Connection( device.Name, device ) );
+                            ConnectMessage.Text = "No items found.";
                         }
-                        ConnectMessage.Text = "Select an item and press \"Connect\" to connect.";
-                    }
+                        else
+                        {
+                            foreach( DeviceInformation device in result )
+                            {
+                                connections.Add( new Connection( device.Name, device ) );
+                            }
+                            ConnectMessage.Text = "Select an item and press \"Connect\" to connect.";
+                        }
 
-                    ConnectionList.ItemsSource = connections;
-                } ) );
-            } );
+                        ConnectionList.ItemsSource = connections;
+                    } ) );
+                } );
+            }
         }
 
         /****************************************************************
          *                       UI Callbacks                           *
          ****************************************************************/
-
+       
+        /// <summary>
+        /// This function is called if the selection is changed on the Connection combo box
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
         private void ConnectionComboBox_SelectionChanged( object sender, SelectionChangedEventArgs e )
         {
             RefreshDeviceList();
         }
 
+        /// <summary>
+        /// Called if the Refresh button is pressed
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
         private void RefreshButton_Click( object sender, RoutedEventArgs e )
         {
             RefreshDeviceList();
         }
 
+        /// <summary>
+        /// Called if the Cancel button is pressed
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void CancelButton_Click( object sender, RoutedEventArgs e )
+        {
+            OnConnectionCancelled();
+        }
+
+        /// <summary>
+        /// Called if the Connect button is pressed
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
         private void ConnectButton_Click( object sender, RoutedEventArgs e )
         {
             //disable the buttons and set a timer in case the connection times out
@@ -126,7 +181,27 @@ namespace remote_wiring_experience
                     break;
                     
                 case "Network":
-                    App.Connection = new NetworkSerial( new Windows.Networking.HostName( "192.168.1.120" ), 5000 );
+                    string host = NetworkHostNameTextBox.Text;
+                    string port = NetworkPortTextBox.Text;
+                    ushort portnum = 0;
+
+                    if( host == null || port == null )
+                    {
+                        ConnectMessage.Text = "You must enter host and IP.";
+                        return;
+                    }
+
+                    try
+                    {
+                        portnum = Convert.ToUInt16( port );
+                    }
+                    catch( FormatException )
+                    {
+                        ConnectMessage.Text = "You have entered an invalid port number.";
+                        return;
+                    }
+
+                    App.Connection = new NetworkSerial( new Windows.Networking.HostName( host ), portnum );
                     break;
             }
 
@@ -184,6 +259,32 @@ namespace remote_wiring_experience
         {
             RefreshButton.IsEnabled = enabled;
             ConnectButton.IsEnabled = enabled;
+            CancelButton.IsEnabled = !enabled;
+        }
+
+        /// <summary>
+        /// This function is invoked if a cancellation is invoked for any reason on the connection task
+        /// </summary>
+        private void OnConnectionCancelled()
+        {
+            ConnectMessage.Text = "Connection attempt cancelled.";
+
+            if( App.Connection != null )
+            {
+                App.Connection.ConnectionEstablished -= OnConnectionEstablished;
+                App.Connection.ConnectionFailed -= OnConnectionFailed;
+            }
+
+            if( cancelTokenSource != null )
+            {
+                cancelTokenSource.Dispose();
+            }
+
+            App.Connection = null;
+            App.Arduino = null;
+            cancelTokenSource = null;
+
+            SetUiEnabled( true );
         }
     }
 }

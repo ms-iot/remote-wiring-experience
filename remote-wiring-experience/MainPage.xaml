@@ -23,15 +23,24 @@
                 <x:String>Network</x:String>
             </ComboBox>
         </StackPanel>
-        <StackPanel Grid.Row="1" Margin="10,0,10,0" x:Name="ConnectStackParent" Orientation="Vertical" HorizontalAlignment="Center" VerticalAlignment="Center">
+        <StackPanel Grid.Row="1" Margin="10,0,10,0" x:Name="ConnectStackParent" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Center">
             <ListBox x:Name="ConnectionList" DisplayMemberPath="DisplayName" />
+            <Grid Name="NetworkConnectionGrid" HorizontalAlignment="Stretch"  Visibility="Collapsed">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="3*" />
+                    <ColumnDefinition Width="1*" />
+                </Grid.ColumnDefinitions>
+                <TextBox Name="NetworkHostNameTextBox" Grid.Column="0" HorizontalAlignment="Stretch" PlaceholderText="IP or HostName" />
+                <TextBox Name="NetworkPortTextBox" Grid.Column="1" HorizontalAlignment="Stretch" PlaceholderText="Port" />
+            </Grid>
         </StackPanel>
 
         <TextBlock Grid.Row="2" Margin="10,0,0,0"
                     x:Name="ConnectMessage" FontSize="14" Width="Auto" VerticalAlignment="Bottom"/>
 
-        <StackPanel Grid.Row="3" Margin="10,0,0,10" Orientation="Horizontal" FlowDirection="RightToLeft" >
+        <StackPanel Grid.Row="3" Margin="10" Orientation="Horizontal" FlowDirection="RightToLeft" >
             <Button x:Uid="Connect" Margin="0,0,10,0" x:Name="ConnectButton" Click="ConnectButton_Click">Connect</Button>
+            <Button x:Uid="Connect" Margin="0,0,10,0" x:Name="CancelButton" Click="CancelButton_Click" IsEnabled="False">Cancel</Button>
             <Button x:Uid="RefreshBtn" Margin="0,0,10,0" x:Name="RefreshButton" Click="RefreshButton_Click">Refresh</Button>
         </StackPanel>
     </Grid>

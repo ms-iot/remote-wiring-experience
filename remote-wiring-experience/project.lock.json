@@ -2,7 +2,7 @@
   "locked": false,
   "version": 1,
   "targets": {
-    ".NETCore,Version=v5.0": {
+    "UAP,Version=v10.0": {
       "Microsoft.ApplicationInsights/1.0.0": {
         "compile": {
           "lib/portable-win81+wpa81/Microsoft.ApplicationInsights.dll": {}
@@ -1568,7 +1568,7 @@
         }
       }
     },
-    ".NETCore,Version=v5.0/win10-arm": {
+    "UAP,Version=v10.0/win10-arm": {
       "Microsoft.ApplicationInsights/1.0.0": {
         "compile": {
           "lib/portable-win81+wpa81/Microsoft.ApplicationInsights.dll": {}
@@ -3224,7 +3224,7 @@
         }
       }
     },
-    ".NETCore,Version=v5.0/win10-arm-aot": {
+    "UAP,Version=v10.0/win10-arm-aot": {
       "Microsoft.ApplicationInsights/1.0.0": {
         "compile": {
           "lib/portable-win81+wpa81/Microsoft.ApplicationInsights.dll": {}
@@ -4824,7 +4824,7 @@
         }
       }
     },
-    ".NETCore,Version=v5.0/win10-x86": {
+    "UAP,Version=v10.0/win10-x86": {
       "Microsoft.ApplicationInsights/1.0.0": {
         "compile": {
           "lib/portable-win81+wpa81/Microsoft.ApplicationInsights.dll": {}
@@ -6485,7 +6485,7 @@
         }
       }
     },
-    ".NETCore,Version=v5.0/win10-x86-aot": {
+    "UAP,Version=v10.0/win10-x86-aot": {
       "Microsoft.ApplicationInsights/1.0.0": {
         "compile": {
           "lib/portable-win81+wpa81/Microsoft.ApplicationInsights.dll": {}
@@ -8085,7 +8085,7 @@
         }
       }
     },
-    ".NETCore,Version=v5.0/win10-x64": {
+    "UAP,Version=v10.0/win10-x64": {
       "Microsoft.ApplicationInsights/1.0.0": {
         "compile": {
           "lib/portable-win81+wpa81/Microsoft.ApplicationInsights.dll": {}
@@ -9746,7 +9746,7 @@
         }
       }
     },
-    ".NETCore,Version=v5.0/win10-x64-aot": {
+    "UAP,Version=v10.0/win10-x64-aot": {
       "Microsoft.ApplicationInsights/1.0.0": {
         "compile": {
           "lib/portable-win81+wpa81/Microsoft.ApplicationInsights.dll": {}
@@ -14754,6 +14754,6 @@
       "Microsoft.ApplicationInsights.WindowsApps >= 1.0.0",
       "Microsoft.NETCore.UniversalWindowsPlatform >= 5.0.0"
     ],
-    ".NETCore,Version=v5.0": []
+    "UAP,Version=v10.0": []
   }
 }

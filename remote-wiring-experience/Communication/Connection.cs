@@ -1,4 +1,4 @@
-namespace remote_wiring_experience
+namespace Communication
 {
     public class Connection
     {

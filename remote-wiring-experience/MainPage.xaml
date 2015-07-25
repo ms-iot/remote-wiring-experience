@@ -8,40 +8,64 @@
     Background="SlateGray"
     mc:Ignorable="d">
 
-    <Grid>
-        <Grid.RowDefinitions>
-            <RowDefinition Height="1*"/>
-            <RowDefinition Height="4*"/>
-            <RowDefinition Height="1*"/>
-            <RowDefinition Height="1*"/>
-        </Grid.RowDefinitions>
+    <Pivot Name="DeviceControlPivot" PivotItemLoaded="Pivot_PivotItemLoaded">
+        <PivotItem Name="Digital" Header="Digital">
+            <ScrollViewer>
+                <StackPanel Name="DigitalControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            </ScrollViewer>
+        </PivotItem>
+        <PivotItem Name="Analog" Header="Analog">
+            <ScrollViewer>
+                <StackPanel Name="AnalogControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
+            </ScrollViewer>
+        </PivotItem>
+        <PivotItem Name="I2C" Header="I2C">
+            <ScrollViewer>
+                <StackPanel Name="I2cControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+                    <Button Name="I2cToggleButton" HorizontalAlignment="Center" VerticalAlignment="Top" Margin="5, 10, 5, 10" Click="OnClick_I2cToggleButton">
+                        <Image Name="I2cToggleImage" Stretch="None"/>
+                    </Button>
+                    <StackPanel Name="I2cVisibilityPanel" Visibility="Collapsed">
+                        <Grid Padding="5" HorizontalAlignment="Stretch" FlowDirection="LeftToRight" BorderThickness="3" BorderBrush="Black">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="1*"/>
+                                <ColumnDefinition Width="1*"/>
+                            </Grid.ColumnDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="10,10,0,0" x:Name="ConnectSelection" Orientation="Vertical">
-            <ComboBox x:Name="ConnectionMethodComboBox" Width="auto" SelectedIndex="0">
-                <x:String>Bluetooth</x:String>
-                <x:String>USB</x:String>
-                <x:String>Network</x:String>
-            </ComboBox>
-        </StackPanel>
-        <StackPanel Grid.Row="1" Margin="10,0,10,0" x:Name="ConnectStackParent" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Center">
-            <ListBox x:Name="ConnectionList" DisplayMemberPath="DisplayName" />
-            <Grid Name="NetworkConnectionGrid" HorizontalAlignment="Stretch"  Visibility="Collapsed">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="3*" />
-                    <ColumnDefinition Width="1*" />
-                </Grid.ColumnDefinitions>
-                <TextBox Name="NetworkHostNameTextBox" Grid.Column="0" HorizontalAlignment="Stretch" PlaceholderText="IP or HostName" />
-                <TextBox Name="NetworkPortTextBox" Grid.Column="1" HorizontalAlignment="Stretch" PlaceholderText="Port" />
-            </Grid>
-        </StackPanel>
+                            <StackPanel Margin="5" Orientation="Vertical" HorizontalAlignment="Stretch" Grid.Column="0">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Top" Text="Address"/>
+                                <TextBox Name="I2cAddressTextBox" HorizontalAlignment="Stretch" AcceptsReturn="False" InputScope="AlphanumericFullWidth"/>
+                            </StackPanel>
 
-        <TextBlock Grid.Row="2" Margin="10,0,0,0"
-                    x:Name="ConnectMessage" FontSize="14" Width="Auto" VerticalAlignment="Bottom"/>
+                            <StackPanel Margin="5" Orientation="Vertical" HorizontalAlignment="Stretch" Grid.Column="1">
+                                <TextBlock HorizontalAlignment="Center" VerticalAlignment="Top" Text="Register"/>
+                                <TextBox Name="I2cRegisterTextBox" HorizontalAlignment="Stretch" AcceptsReturn="False" InputScope="AlphanumericFullWidth"/>
+                            </StackPanel>
 
-        <StackPanel Grid.Row="3" Margin="10" Orientation="Horizontal" FlowDirection="RightToLeft" >
-            <Button x:Uid="Connect" Margin="0,0,10,0" x:Name="ConnectButton" Click="ConnectButton_Click">Connect</Button>
-            <Button x:Uid="Connect" Margin="0,0,10,0" x:Name="CancelButton" Click="CancelButton_Click" IsEnabled="False">Cancel</Button>
-            <Button x:Uid="RefreshBtn" Margin="0,0,10,0" x:Name="RefreshButton" Click="RefreshButton_Click">Refresh</Button>
-        </StackPanel>
-    </Grid>
+                        </Grid>
+
+                        <StackPanel Margin="0,5,0,5" Padding="5" HorizontalAlignment="Stretch" FlowDirection="LeftToRight" BorderThickness="3" BorderBrush="Black">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Top" Text="Data (delimit multiple bytes with spaces)"/>
+                            <TextBox Name="I2cWriteDataTextBox" Margin="5" HorizontalAlignment="Stretch" AcceptsReturn="False"/>
+                            <Button Name="I2cWriteButton" HorizontalAlignment="Center" Click="OnClick_I2cWriteButton">Write</Button>
+                        </StackPanel>
+
+                        <StackPanel Padding="5" HorizontalAlignment="Stretch" FlowDirection="LeftToRight" BorderThickness="3" BorderBrush="Black">
+                            <TextBlock HorizontalAlignment="Center" VerticalAlignment="Top" Text="Number of bytes to read"/>
+                            <TextBox Name="I2cReadQuantityTextBox" Margin="5" HorizontalAlignment="Stretch" AcceptsReturn="False" InputScope="Number" TextChanged="OnTextChanged_I2cReadQuantityTextBox"/>
+                            <TextBlock Name="I2cRawReplyTextBox" HorizontalAlignment="Center" Text="Your raw reply will be displayed here, byte by byte."/>
+                            <TextBlock Name="I2cProcessedReplyTextBox" HorizontalAlignment="Center" Text="If you further process your reply, it will be displayed here."/>
+                            
+                            <StackPanel Name="I2cReplyProcessPanel" Orientation="Vertical">
+                            </StackPanel>
+                            
+                            <Button Name="I2cReadButton" IsEnabled ="False" Margin="0, 0, 0, 5" HorizontalAlignment="Center" Click="OnClick_I2cReadButton">Read</Button>
+                        </StackPanel>
+
+                    </StackPanel>
+                </StackPanel>
+            </ScrollViewer>
+        </PivotItem>
+    </Pivot>
+
 </Page>

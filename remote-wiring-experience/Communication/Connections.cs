@@ -1,6 +1,6 @@
 using System.Collections.ObjectModel;
 
-namespace remote_wiring_experience
+namespace Communication
 {
     public class Connections : ObservableCollection<Connection>
     {

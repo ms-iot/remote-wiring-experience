@@ -4,7 +4,7 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
-    <ProjectGuid>{F20D22C9-6EDB-41A1-8635-D4926166521D}</ProjectGuid>
+    <ProjectGuid>{F57A7C87-A25D-4ECA-A1F6-9F251DA8C10D}</ProjectGuid>
     <OutputType>AppContainerExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>remote_wiring_experience</RootNamespace>
@@ -101,12 +101,12 @@
     </Compile>
     <Compile Include="Communication\Connection.cs" />
     <Compile Include="Communication\Connections.cs" />
+    <Compile Include="ConnectionPage.xaml.cs">
+      <DependentUpon>ConnectionPage.xaml</DependentUpon>
+    </Compile>
     <Compile Include="Function.cs" />
     <Compile Include="FunctionElement.cs" />
     <Compile Include="FunctionPanel.cs" />
-    <Compile Include="GpioPage.xaml.cs">
-      <DependentUpon>GpioPage.xaml</DependentUpon>
-    </Compile>
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
@@ -206,7 +206,7 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
-    <Page Include="GpioPage.xaml">
+    <Page Include="ConnectionPage.xaml">
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </Page>
@@ -229,6 +229,7 @@
       <Name>Microsoft.Maker.Serial</Name>
     </ProjectReference>
   </ItemGroup>
+  <ItemGroup />
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>
   </PropertyGroup>

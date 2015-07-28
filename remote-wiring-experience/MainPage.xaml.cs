@@ -43,7 +43,9 @@ namespace remote_wiring_experience
         private Dictionary<byte, Image> digitalModeImages;
         private Dictionary<byte, Image> digitalStateImages;
         private Dictionary<byte, Image> analogModeImages;
+        private Dictionary<byte, Slider> analogSliders;
         private Dictionary<byte, TextBlock> analogTextBlocks;
+        private Dictionary<byte, TextBox> pwmTextBoxes;
         private Dictionary<byte, Image> pwmModeImages;
         private Dictionary<byte, Slider> pwmSliders;
 
@@ -56,11 +58,13 @@ namespace remote_wiring_experience
 
             bitmaps = new Dictionary<string, BitmapImage>();
             uiControlsLoaded = new Dictionary<string, bool>();
+            analogSliders = new Dictionary<byte, Slider>();
             pwmSliders = new Dictionary<byte, Slider>();
             digitalModeImages = new Dictionary<byte, Image>();
             digitalStateImages = new Dictionary<byte, Image>();
             analogModeImages = new Dictionary<byte, Image>();
             analogTextBlocks = new Dictionary<byte, TextBlock>();
+            pwmTextBoxes = new Dictionary<byte, TextBox>();
             pwmModeImages = new Dictionary<byte, Image>();
 
             foreach( var item in DeviceControlPivot.Items )
@@ -93,7 +97,7 @@ namespace remote_wiring_experience
             //we must dispatch the change to the UI thread to update the text field.
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
-                UpdateAnalogTextBlockValue( pin, value );
+                UpdateAnalogIndicators( pin, value );
             } ) );
         }
 
@@ -241,9 +245,38 @@ namespace remote_wiring_experience
             var slider = sender as Slider;
             var pin = Convert.ToByte( slider.Name.Substring( slider.Name.IndexOf( '_' ) + 1 ) );
 
+            pwmTextBoxes[pin].Text = args.NewValue.ToString();
             arduino.analogWrite( pin, (byte)args.NewValue );
         }
 
+        /// <summary>
+        /// Invoked when the text value for a PWM pin is modified
+        /// </summary>
+        /// <param name="sender">the slider being manipulated</param>
+        /// <param name="args">slider value changed event args</param>
+        private void OnTextChanged_PwmTextBox( object sender, TextChangedEventArgs e )
+        {
+            var textbox = sender as TextBox;
+            var pin = Convert.ToByte( textbox.Name.Substring( textbox.Name.IndexOf( '_' ) + 1 ) );
+
+            try
+            {
+                var newValue = Convert.ToInt32( textbox.Text );
+                if( newValue < byte.MinValue || newValue > byte.MaxValue ) throw new FormatException();
+                pwmSliders[pin].Value = newValue;
+                textbox.BorderBrush = new SolidColorBrush( Windows.UI.Color.FromArgb( 0, 0, 0, 0 ) );
+            }
+            catch( FormatException )
+            {
+                textbox.BorderBrush = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 255, 0, 0 ) );
+            }
+        }
+
+        /// <summary>
+        /// Invoked when the pwm mode toggle button is tapped or pressed
+        /// </summary>
+        /// <param name="sender">the button being pressed</param>
+        /// <param name="args">button press event args</param>
         private void OnClick_PwmModeToggleButton( object sender, RoutedEventArgs args )
         {
             var button = sender as Button;
@@ -255,9 +288,15 @@ namespace remote_wiring_experience
             arduino.pinMode( pin, nextMode );
             UpdatePwmPinModeIndicator( pin );
             pwmSliders[pin].Visibility = ( nextMode == PinMode.PWM ) ? Visibility.Visible : Visibility.Collapsed;
+            pwmTextBoxes[pin].Visibility = ( nextMode == PinMode.PWM ) ? Visibility.Visible : Visibility.Collapsed;
         }
 
 
+        /// <summary>
+        /// Invoked when the i2c enable button is pressed
+        /// </summary>
+        /// <param name="sender">the button being pressed</param>
+        /// <param name="args">button press event args</param>
         private void OnClick_I2cToggleButton( object sender, RoutedEventArgs e )
         {
             if( !isI2cEnabled )
@@ -269,6 +308,11 @@ namespace remote_wiring_experience
             UpdateI2cControls();
         }
 
+        /// <summary>
+        /// Invoked when the i2c write button is pressed
+        /// </summary>
+        /// <param name="sender">the button being pressed</param>
+        /// <param name="args">button press event args</param>
         private void OnClick_I2cWriteButton( object sender, RoutedEventArgs e )
         {
             try
@@ -313,6 +357,11 @@ namespace remote_wiring_experience
             }
         }
 
+        /// <summary>
+        /// Invoked when the i2c read button is pressed
+        /// </summary>
+        /// <param name="sender">the button being pressed</param>
+        /// <param name="args">button press event args</param>
         private void OnClick_I2cReadButton( object sender, RoutedEventArgs e )
         {
             if( string.IsNullOrEmpty( I2cReadQuantityTextBox.Text ) )
@@ -507,10 +556,24 @@ namespace remote_wiring_experience
                 button.Click += OnClick_AnalogModeToggleButton;
                 stack.Children.Add( button );
 
+                //set up the value change slider
+                var slider = new Slider();
+                slider.Visibility = Visibility.Collapsed;
+                slider.Orientation = Orientation.Horizontal;
+                slider.HorizontalAlignment = HorizontalAlignment.Stretch;
+                slider.IsEnabled = false;
+                slider.Minimum = 0;
+                slider.Maximum = 1023;
+                slider.Name = "slider_" + i;
+                slider.Width = 220;
+                analogSliders.Add( i, slider );
+                stack.Children.Add( slider );
+
                 //set up the indication text
                 var text = new TextBlock();
                 text.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text.VerticalAlignment = VerticalAlignment.Center;
+                text.Margin = new Thickness( 10, 0, 0, 6 );
                 text.Text = "Tap to enable.";
                 analogTextBlocks.Add( i, text );
                 stack.Children.Add( text );
@@ -556,10 +619,21 @@ namespace remote_wiring_experience
                 pwmSliders.Add( pwmPins[i], slider );
                 stack.Children.Add( slider );
 
+                //set up the indication text
+                var text = new TextBox();
+                text.Name = "pwmtext_" + pwmPins[i];
+                text.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text.VerticalAlignment = VerticalAlignment.Center;
+                text.Margin = new Thickness( 10, 0, 0, 6 );
+                text.Width = 40;
+                text.Visibility = Visibility.Collapsed;
+                text.TextChanged += OnTextChanged_PwmTextBox;
+                pwmTextBoxes.Add( pwmPins[i], text );
+                stack.Children.Add( text );
+
                 AnalogControls.Children.Add( stack );
             }
         }
-
 
         /// <summary>
         /// Adds the necessary digital controls to the digital pivot page, this will only be called the first time this pivot page is loaded
@@ -680,14 +754,17 @@ namespace remote_wiring_experience
                 {
                     case PinMode.ANALOG:
                         image = bitmaps["input_a" + pin];
+                        analogSliders[pin].Visibility = Visibility.Visible;
                         break;
 
                     case PinMode.I2C:
                         image = bitmaps["disabled_a" + pin];
+                        analogSliders[pin].Visibility = Visibility.Collapsed;
                         break;
 
                     default:
                         image = bitmaps["none_a" + pin];
+                        analogSliders[pin].Visibility = Visibility.Collapsed;
                         break;
                 }
 
@@ -699,9 +776,10 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="pin">the pin number to be updated</param>
         /// <param name="value">the value to display</param>
-        private void UpdateAnalogTextBlockValue( byte pin, ushort value )
+        private void UpdateAnalogIndicators( byte pin, ushort value )
         {
             if( analogTextBlocks.ContainsKey( pin ) ) analogTextBlocks[pin].Text = Convert.ToString( value );
+            if( analogSliders.ContainsKey( pin ) ) analogSliders[pin].Value = value;
         }
 
         /// <summary>

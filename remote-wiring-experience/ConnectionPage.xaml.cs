@@ -236,10 +236,11 @@ namespace remote_wiring_experience
             }
 
             App.Arduino = new RemoteDevice( App.Connection );
+            App.Arduino.DeviceReady += OnConnectionEstablished;
+            App.Arduino.DeviceConnectionFailed += OnConnectionFailed;
+
             connectionAttemptStartedTime = DateTime.Now;
             App.Connection.begin( 115200, SerialConfig.SERIAL_8N1 );
-            App.Connection.ConnectionEstablished += OnConnectionEstablished;
-            App.Connection.ConnectionFailed += OnConnectionFailed;
 
             //start a timer for connection timeout
             timeout = new DispatcherTimer();

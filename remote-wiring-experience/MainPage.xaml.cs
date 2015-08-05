@@ -80,8 +80,8 @@ namespace remote_wiring_experience
             base.OnNavigatedTo( e );
             LoadAssets();
             arduino = App.Arduino;
-            arduino.DigitalPinUpdatedEvent += Arduino_DigitalPinUpdatedEvent;
-            arduino.AnalogPinUpdatedEvent += Arduino_AnalogPinUpdatedEvent;
+            arduino.DigitalPinUpdated += Arduino_OnDigitalPinUpdated;
+            arduino.AnalogPinUpdated += Arduino_OnAnalogPinUpdated;
         }
 
 
@@ -94,7 +94,7 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="pin">The pin whose value has changed</param>
         /// <param name="value">the new value of the pin</param>
-        private void Arduino_AnalogPinUpdatedEvent( byte pin, ushort value )
+        private void Arduino_OnAnalogPinUpdated( byte pin, ushort value )
         {
             //we must dispatch the change to the UI thread to update the text field.
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
@@ -109,7 +109,7 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="pin">The pin whose value has changed</param>
         /// <param name="state">the new state of the pin, either HIGH or LOW</param>
-        private void Arduino_DigitalPinUpdatedEvent( byte pin, PinState state )
+        private void Arduino_OnDigitalPinUpdated( byte pin, PinState state )
         {
             //we must dispatch the change to the UI thread to change the indicator image
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
@@ -124,7 +124,7 @@ namespace remote_wiring_experience
         /// <param name="address_">The address which is replying</param>
         /// <param name="reg_">The register which is replying</param>
         /// <param name="response">A datareader containing the raw reponse bytes from the device.</param>
-        private void I2c_I2cReplyEvent( byte address, byte reg, Windows.Storage.Streams.DataReader response )
+        private void I2c_OnI2cReply( byte address, byte reg, Windows.Storage.Streams.DataReader response )
         {
             //we must dispatch the change to the UI thread to change the indicator image
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
@@ -183,11 +183,11 @@ namespace remote_wiring_experience
             var mode = arduino.getPinMode( analogPinNumber );
             var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.ANALOG : PinMode.OUTPUT;
 
-            arduino.pinMode( analogPinNumber, nextMode );
+            arduino.pinMode( "A" + pin, nextMode );
 
             //telemetry
             var properties = new Dictionary<string, string>();
-            properties.Add( "pin_number", analogPinNumber.ToString() );
+            properties.Add( "pin_number", pin.ToString() );
             properties.Add( "new_mode", nextMode.ToString() );
             App.Telemetry.TrackEvent( "Analog_Mode_Toggle_Button_Pressed", properties );
 
@@ -198,14 +198,14 @@ namespace remote_wiring_experience
                 {
                     isI2cEnabled = false;
                     arduino.pinMode( i2cPins[1], PinMode.OUTPUT );
-                    arduino.I2c.I2cReplyEvent -= I2c_I2cReplyEvent;
+                    arduino.I2c.I2cReplyEvent -= I2c_OnI2cReply;
                     App.Telemetry.TrackEvent( "I2C_Automatically_Disabled" );
                 }
                 else if( i2cPins[1] == analogPinNumber )
                 {
                     isI2cEnabled = false;
                     arduino.pinMode( i2cPins[0], PinMode.OUTPUT );
-                    arduino.I2c.I2cReplyEvent -= I2c_I2cReplyEvent;
+                    arduino.I2c.I2cReplyEvent -= I2c_OnI2cReply;
                     App.Telemetry.TrackEvent( "I2C_Automatically_Disabled" );
                 }
             }
@@ -349,7 +349,7 @@ namespace remote_wiring_experience
             if( !isI2cEnabled )
             {
                 arduino.I2c.enable();
-                arduino.I2c.I2cReplyEvent += I2c_I2cReplyEvent;
+                arduino.I2c.I2cReplyEvent += I2c_OnI2cReply;
                 isI2cEnabled = true;
 
                 App.Telemetry.TrackEvent( "I2c_Enabled" );
@@ -642,7 +642,7 @@ namespace remote_wiring_experience
                 slider.Minimum = 0;
                 slider.Maximum = 1023;
                 slider.Name = "slider_" + i;
-                slider.Width = 220;
+                slider.Width = 180;
                 analogSliders.Add( i, slider );
                 stack.Children.Add( slider );
 
@@ -692,7 +692,7 @@ namespace remote_wiring_experience
                 slider.Minimum = 0;
                 slider.Maximum = 255;
                 slider.Name = "slider_" + pwmPins[i];
-                slider.Width = 220;
+                slider.Width = 180;
                 pwmSliders.Add( pwmPins[i], slider );
                 stack.Children.Add( slider );
 
@@ -841,6 +841,7 @@ namespace remote_wiring_experience
                     default:
                         image = bitmaps["none_a" + pin];
                         analogSliders[pin].Visibility = Visibility.Collapsed;
+                        analogTextBlocks[pin].Text = "Tap to enable.";
                         break;
                 }
 
@@ -854,6 +855,7 @@ namespace remote_wiring_experience
         /// <param name="value">the value to display</param>
         private void UpdateAnalogIndicators( byte pin, ushort value )
         {
+            if( arduino.getPinMode( "A" + pin ) != PinMode.ANALOG ) return;
             if( analogTextBlocks.ContainsKey( pin ) ) analogTextBlocks[pin].Text = Convert.ToString( value );
             if( analogSliders.ContainsKey( pin ) ) analogSliders[pin].Value = value;
         }

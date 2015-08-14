@@ -9,6 +9,7 @@ using Windows.UI.Xaml.Navigation;
 using Communication;
 using Microsoft.Maker.Serial;
 using Microsoft.Maker.RemoteWiring;
+using System.Collections.Generic;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -20,6 +21,8 @@ namespace remote_wiring_experience
     public sealed partial class ConnectionPage : Page
     {
         DispatcherTimer timeout;
+        DateTime connectionAttemptStartedTime;
+        DateTime timePageNavigatedTo;
         CancellationTokenSource cancelTokenSource;
 
         public ConnectionPage()
@@ -31,6 +34,11 @@ namespace remote_wiring_experience
         protected override void OnNavigatedTo( NavigationEventArgs e )
         {
             base.OnNavigatedTo( e );
+
+            //telemetry
+            App.Telemetry.TrackPageView( "Connection_Page" );
+            timePageNavigatedTo = DateTime.Now;
+
             if( ConnectionList.ItemsSource == null )
             {
                 ConnectMessage.Text = "Select an item to connect to.";
@@ -161,7 +169,7 @@ namespace remote_wiring_experience
                 var selectedConnection = ConnectionList.SelectedItem as Connection;
                 device = selectedConnection.Source as DeviceInformation;
             }
-            else if( ConnectionMethodComboBox.SelectedIndex != 2 )
+            else if( ( ConnectionMethodComboBox.SelectedItem as string ) != "Network" )
             {
                 //if they haven't selected an item, but have chosen "usb" or "bluetooth", we can't proceed
                 ConnectMessage.Text = "You must select an item to proceed.";
@@ -169,15 +177,31 @@ namespace remote_wiring_experience
                 return;
             }
 
+            //connection properties dictionary, used only for telemetry data
+            var properties = new Dictionary<string, string>();
+
             //use the selected device to create our communication object
-            switch( ConnectionMethodComboBox.SelectedItem as String )
+            switch( ConnectionMethodComboBox.SelectedItem as string )
             {
                 default:
                 case "Bluetooth":
+
+                    //send telemetry about this connection attempt
+                    properties.Add( "Device_Name", device.Name );
+                    properties.Add( "Device_ID", device.Id );
+                    properties.Add( "Device_Kind", device.Kind.ToString() );
+                    App.Telemetry.TrackEvent( "Bluetooth_Connection_Attempt", properties );
                     App.Connection = new BluetoothSerial( device );
                     break;
 
                 case "USB":
+
+                    //send telemetry about this connection attempt
+                    properties.Add( "Device_Name", device.Name );
+                    properties.Add( "Device_ID", device.Id );
+                    properties.Add( "Device_Kind", device.Kind.ToString() );
+                    App.Telemetry.TrackEvent( "USB_Connection_Attempt", properties );
+
                     App.Connection = new UsbSerial( device );
                     break;
 
@@ -202,14 +226,21 @@ namespace remote_wiring_experience
                         return;
                     }
 
+                    //send telemetry about this connection attempt
+                    properties.Add( "host", host );
+                    properties.Add( "port", portnum.ToString() );
+                    App.Telemetry.TrackEvent( "Network_Connection_Attempt", properties );
+
                     App.Connection = new NetworkSerial( new Windows.Networking.HostName( host ), portnum );
                     break;
             }
 
             App.Arduino = new RemoteDevice( App.Connection );
+            App.Arduino.DeviceReady += OnConnectionEstablished;
+            App.Arduino.DeviceConnectionFailed += OnConnectionFailed;
+
+            connectionAttemptStartedTime = DateTime.Now;
             App.Connection.begin( 115200, SerialConfig.SERIAL_8N1 );
-            App.Connection.ConnectionEstablished += OnConnectionEstablished;
-            App.Connection.ConnectionFailed += OnConnectionFailed;
 
             //start a timer for connection timeout
             timeout = new DispatcherTimer();
@@ -225,9 +256,13 @@ namespace remote_wiring_experience
 
         private void OnConnectionFailed( string message )
         {
-            timeout.Stop();
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
+                timeout.Stop();
+
+                //telemetry
+                App.Telemetry.TrackRequest( "Connection_Failed_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, message, true );
+
                 ConnectMessage.Text = "Connection attempt failed: " + message;
                 SetUiEnabled( true );
             } ) );
@@ -235,9 +270,14 @@ namespace remote_wiring_experience
 
         private void OnConnectionEstablished()
         {
-            timeout.Stop();
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
+                timeout.Stop();
+                
+                //telemetry
+                App.Telemetry.TrackRequest( "Connection_Success_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
+                App.Telemetry.TrackMetric( "Connection_Page_Time_Spent_In_Seconds", ( DateTime.Now - timePageNavigatedTo ).TotalSeconds );
+
                 this.Frame.Navigate( typeof( MainPage ) );
             } ) );
         }
@@ -246,6 +286,11 @@ namespace remote_wiring_experience
         {
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
+                timeout.Stop();
+
+                //telemetry
+                App.Telemetry.TrackRequest( "Connection_Timeout_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
+
                 ConnectMessage.Text = "Connection attempt timed out.";
                 SetUiEnabled( true );
             } ) );
@@ -269,6 +314,7 @@ namespace remote_wiring_experience
         private void OnConnectionCancelled()
         {
             ConnectMessage.Text = "Connection attempt cancelled.";
+            App.Telemetry.TrackRequest( "Connection_Cancelled_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
 
             if( App.Connection != null )
             {

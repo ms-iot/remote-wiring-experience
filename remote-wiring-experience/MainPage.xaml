@@ -8,7 +8,7 @@
     Background="SlateGray"
     mc:Ignorable="d">
 
-    <Pivot Name="DeviceControlPivot" PivotItemLoaded="Pivot_PivotItemLoaded">
+    <Pivot Name="DeviceControlPivot" PivotItemLoaded="Pivot_PivotItemLoaded" PivotItemUnloading="Pivot_PivotItemUnloading">
         <PivotItem Name="Digital" Header="Digital">
             <ScrollViewer>
                 <StackPanel Name="DigitalControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>

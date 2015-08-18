@@ -106,9 +106,6 @@
     <Compile Include="ConnectionPage.xaml.cs">
       <DependentUpon>ConnectionPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Function.cs" />
-    <Compile Include="FunctionElement.cs" />
-    <Compile Include="FunctionPanel.cs" />
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>

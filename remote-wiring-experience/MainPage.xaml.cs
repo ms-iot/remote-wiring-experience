@@ -680,7 +680,14 @@ namespace remote_wiring_experience
             var toastDom = new Windows.Data.Xml.Dom.XmlDocument();
             toastDom.LoadXml( builder.ToString() );
             var toast = new ToastNotification( toastDom );
-            ToastNotificationManager.CreateToastNotifier().Show( toast );
+            try
+            {
+                ToastNotificationManager.CreateToastNotifier().Show( toast );
+            }
+            catch( Exception )
+            {
+                //do nothing, toast will gracefully fail
+            }
         }
 
 

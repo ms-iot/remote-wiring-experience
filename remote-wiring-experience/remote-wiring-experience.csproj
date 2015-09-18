@@ -123,6 +123,7 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\analog.png" />
+    <Content Include="Assets\disabled.png" />
     <Content Include="Assets\disabled_0.png" />
     <Content Include="Assets\disabled_1.png" />
     <Content Include="Assets\disabled_10.png" />
@@ -166,6 +167,8 @@
     <Content Include="Assets\input_a3.png" />
     <Content Include="Assets\input_a4.png" />
     <Content Include="Assets\input_a5.png" />
+    <Content Include="Assets\inuse_0.png" />
+    <Content Include="Assets\inuse_1.png" />
     <Content Include="Assets\low.png" />
     <Content Include="Assets\none_a0.png" />
     <Content Include="Assets\none_a1.png" />

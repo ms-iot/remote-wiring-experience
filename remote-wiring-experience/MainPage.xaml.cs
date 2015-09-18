@@ -158,6 +158,13 @@ namespace remote_wiring_experience
             var button = sender as Button;
             var image = button.Content as Image;
             var pin = GetPinFromButtonObject( button );
+            
+            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
+            if( pin == 0 || pin == 1 )
+            {
+                ShowToast( "Pin unavailable.", "That pin is in use as a serial pin and cannot be used.", null );
+                return;
+            }
 
             var mode = arduino.getPinMode( pin );
             var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.INPUT : PinMode.OUTPUT;
@@ -183,6 +190,13 @@ namespace remote_wiring_experience
             var button = sender as Button;
             var image = button.Content as Image;
             var pin = GetPinFromButtonObject( button );
+
+            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
+            if( pin == 0 || pin == 1 )
+            {
+                ShowToast( "Pin unavailable.", "That pin is in use as a serial pin and cannot be used.", null );
+                return;
+            }
 
             if( arduino.getPinMode( pin ) != PinMode.OUTPUT )
             {
@@ -286,7 +300,10 @@ namespace remote_wiring_experience
             bitmaps.Add( "low", new BitmapImage( new Uri( BaseUri, @"Assets/low.png" ) ) );
             bitmaps.Add( "analog", new BitmapImage( new Uri( BaseUri, @"Assets/analog.png" ) ) );
             bitmaps.Add( "enabled", new BitmapImage( new Uri( BaseUri, @"Assets/enabled.png" ) ) );
+            bitmaps.Add( "disabled", new BitmapImage( new Uri( BaseUri, @"Assets/disabled.png" ) ) );
             bitmaps.Add( "enablei2c", new BitmapImage( new Uri( BaseUri, @"Assets/enablei2c.png" ) ) );
+            bitmaps.Add( "inuse_0", new BitmapImage( new Uri( BaseUri, @"Assets/inuse_0.png" ) ) );
+            bitmaps.Add( "inuse_1", new BitmapImage( new Uri( BaseUri, @"Assets/inuse_1.png" ) ) );
 
             for( int i = 0; i < numberOfAnalogPins; ++i )
             {
@@ -542,9 +559,18 @@ namespace remote_wiring_experience
             if( !digitalStateImages.ContainsKey( pin ) ) return;
 
             ImageSource image;
-            if( arduino.getPinMode( pin ) == PinMode.PWM ) image = bitmaps["analog"];
-            else if( arduino.digitalRead( pin ) == PinState.HIGH ) image = bitmaps["high"];
-            else image = bitmaps["low"];
+
+            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
+            if( pin == 0 || pin == 1 )
+            {
+                image = bitmaps["disabled"];
+            }
+            else
+            {
+                if( arduino.getPinMode( pin ) == PinMode.PWM ) image = bitmaps["analog"];
+                else if( arduino.digitalRead( pin ) == PinState.HIGH ) image = bitmaps["high"];
+                else image = bitmaps["low"];
+            }
 
             digitalStateImages[pin].Source = image;
         }
@@ -558,7 +584,13 @@ namespace remote_wiring_experience
             if( !digitalModeImages.ContainsKey( pin ) ) return;
 
             ImageSource image;
-            switch( arduino.getPinMode( pin ) )
+
+            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
+            if( pin == 0 || pin == 1 )
+            {
+                image = bitmaps["inuse_" + pin];
+            }
+            else switch( arduino.getPinMode( pin ) )
             {
                 case PinMode.INPUT:
                     image = bitmaps["input_" + pin];

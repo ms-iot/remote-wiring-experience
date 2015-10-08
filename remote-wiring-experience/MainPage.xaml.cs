@@ -10,6 +10,7 @@ using Windows.UI.Notifications;
 using Windows.UI.Xaml.Controls.Primitives;
 using Microsoft.Maker.RemoteWiring;
 using System.Diagnostics;
+using Windows.UI.Xaml.Input;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -230,12 +231,21 @@ namespace remote_wiring_experience
 
             pwmTextBoxes[pin].Text = args.NewValue.ToString();
             arduino.analogWrite( pin, (byte)args.NewValue );
+        }
+
+        /// <summary>
+        /// This function helps to process telemetry events when manipulation of a PWM slider is complete, 
+        /// rather than after each tick.
+        /// </summary>
+        /// <param name="sender">the slider which was released</param>
+        /// <param name="args">the slider release event args</param>
+        private void OnPointerReleased_PwmSlider( object sender, PointerRoutedEventArgs args )
+        {
+            var slider = sender as Slider;
+            var pin = Convert.ToByte( slider.Name.Substring( slider.Name.IndexOf( '_' ) + 1 ) );
 
             //telemetry
-            var properties = new Dictionary<string, string>();
-            properties.Add( "pin_number", pin.ToString() );
-            properties.Add( "analog_value", args.NewValue.ToString() );
-            App.Telemetry.TrackEvent( "Pwm_Slider_Value_Changed", properties );
+            SendPwmTelemetryEvent( pin, slider.Value );
         }
 
         /// <summary>
@@ -259,6 +269,21 @@ namespace remote_wiring_experience
             {
                 textbox.BorderBrush = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 255, 0, 0 ) );
             }
+        }
+
+        /// <summary>
+        /// This function helps to process telemetry events when manipulation of a PWM text box is complete, 
+        /// rather than after each character is typed
+        /// </summary>
+        /// <param name="sender">the text box which was manipulated</param>
+        /// <param name="e">the lost focus event args</param>
+        private void OnLostFocus_PwmTextBox( object sender, RoutedEventArgs e )
+        {
+            var slider = sender as Slider;
+            var pin = Convert.ToByte( slider.Name.Substring( slider.Name.IndexOf( '_' ) + 1 ) );
+
+            //telemetry
+            SendPwmTelemetryEvent( pin, slider.Value );
         }
 
         /// <summary>
@@ -473,6 +498,7 @@ namespace remote_wiring_experience
                 slider.StepFrequency = 32;
                 slider.TickFrequency = 32;
                 slider.ValueChanged += OnValueChanged_PwmSlider;
+                slider.PointerReleased += OnPointerReleased_PwmSlider;
                 slider.Minimum = 0;
                 slider.Maximum = 255;
                 slider.Name = "slider_" + pwmPins[i];
@@ -489,6 +515,7 @@ namespace remote_wiring_experience
                 text.Width = 40;
                 text.Visibility = Visibility.Collapsed;
                 text.TextChanged += OnTextChanged_PwmTextBox;
+                text.LostFocus += OnLostFocus_PwmTextBox;
                 pwmTextBoxes.Add( pwmPins[i], text );
                 stack.Children.Add( text );
 
@@ -779,6 +806,19 @@ namespace remote_wiring_experience
         private byte ConvertAnalogPinToPinNumber( byte pin )
         {
             return (byte)( pin + numberOfDigitalPins );
+        }
+
+        /// <summary>
+        /// This function sends a single PWM telemetry event
+        /// </summary>
+        /// <param name="pin">the pin number to be reported</param>
+        /// <param name="value">the value of the pin</param>
+        private void SendPwmTelemetryEvent( byte pin, double value )
+        {
+            var properties = new Dictionary<string, string>();
+            properties.Add( "pin_number", pin.ToString() );
+            properties.Add( "analog_value", value.ToString() );
+            App.Telemetry.TrackEvent( "Pwm_Slider_Value_Changed", properties );
         }
     }
 }

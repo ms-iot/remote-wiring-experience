@@ -10,6 +10,8 @@ using Communication;
 using Microsoft.Maker.Serial;
 using Microsoft.Maker.RemoteWiring;
 using System.Collections.Generic;
+using Windows.UI.Xaml.Media.Imaging;
+using Windows.UI.Xaml.Media;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -25,6 +27,9 @@ namespace remote_wiring_experience
         DateTime timePageNavigatedTo;
         CancellationTokenSource cancelTokenSource;
 
+        BitmapImage wireBitmap;
+        Image wire;
+
         public ConnectionPage()
         {
             this.InitializeComponent();
@@ -39,7 +44,14 @@ namespace remote_wiring_experience
             App.Telemetry.TrackPageView( "Connection_Page" );
             timePageNavigatedTo = DateTime.Now;
 
-            if( ConnectionList.ItemsSource == null )
+            // Load assets for wire icon
+            wireBitmap = new BitmapImage(new Uri(BaseUri, @"Assets/wire.png"));
+            wire = new Image();
+            wire.Stretch = Stretch.Uniform;
+            wire.Source = wireBitmap;
+            WireStack.Children.Add(wire);
+
+            if ( ConnectionList.ItemsSource == null )
             {
                 ConnectMessage.Text = "Select an item to connect to.";
                 RefreshDeviceList();
@@ -61,7 +73,11 @@ namespace remote_wiring_experience
                 default:
                 case "Bluetooth":
                     ConnectionList.Visibility = Visibility.Visible;
-                    NetworkConnectionGrid.Visibility = Visibility.Collapsed;
+                    DevicesText.Visibility = Visibility.Visible;
+                    NetworkHostNameTextBox.IsEnabled = false;
+                    NetworkPortTextBox.IsEnabled = false;
+                    NetworkHostNameTextBox.Text = "";
+                    NetworkPortTextBox.Text = "";
 
                     //create a cancellation token which can be used to cancel a task
                     cancelTokenSource = new CancellationTokenSource();
@@ -72,7 +88,11 @@ namespace remote_wiring_experience
 
                 case "USB":
                     ConnectionList.Visibility = Visibility.Visible;
-                    NetworkConnectionGrid.Visibility = Visibility.Collapsed;
+                    DevicesText.Visibility = Visibility.Visible;
+                    NetworkHostNameTextBox.IsEnabled = false;
+                    NetworkPortTextBox.IsEnabled = false;
+                    NetworkHostNameTextBox.Text = "";
+                    NetworkPortTextBox.Text = "";
 
                     //create a cancellation token which can be used to cancel a task
                     cancelTokenSource = new CancellationTokenSource();
@@ -83,8 +103,10 @@ namespace remote_wiring_experience
 
                 case "Network":
                     ConnectionList.Visibility = Visibility.Collapsed;
-                    NetworkConnectionGrid.Visibility = Visibility.Visible;
-                    ConnectMessage.Text = "Enter a host and port to connect";
+                    DevicesText.Visibility = Visibility.Collapsed;
+                    NetworkHostNameTextBox.IsEnabled = true;
+                    NetworkPortTextBox.IsEnabled = true;
+                    ConnectMessage.Text = "Enter a host and port to connect.";
                     task = null;
                     break;
             }
@@ -103,6 +125,7 @@ namespace remote_wiring_experience
                         if( result == null || result.Count == 0 )
                         {
                             ConnectMessage.Text = "No items found.";
+                            ConnectionList.Visibility = Visibility.Collapsed;
                         }
                         else
                         {

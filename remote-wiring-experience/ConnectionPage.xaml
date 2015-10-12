@@ -65,7 +65,7 @@
                         <StackPanel x:Name="WireStack" Width="40" Height="40" HorizontalAlignment="Left" FlowDirection="LeftToRight"></StackPanel>
                         <TextBlock HorizontalAlignment="Left" TextAlignment="Left" FontSize="32" FontWeight="ExtraLight" Margin="3, -5, 0, 0">Let's connect an Arduino</TextBlock>
                         <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Connect an Arduino board to this device using the
-                        tools below - if your Arduino is properly configured, it should appear on this page once the correct settings are chosen.</TextBlock>
+                        tools below. Choose your preferred connection method. If your Arduino is properly configured, your board should appear on this page.</TextBlock>
                     </StackPanel>
 
                     <StackPanel Grid.Row="1" Margin="30,-5,0,0" x:Name="ConnectSelection" Orientation="Vertical">

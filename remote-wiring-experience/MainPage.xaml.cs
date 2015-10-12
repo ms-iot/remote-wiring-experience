@@ -55,6 +55,7 @@ namespace remote_wiring_experience
         private int currentPage = 0;
         private String[] pages = { "Digital", "Analog", "PWM", "About" };
         private bool navigated = false;
+        private bool resetVoltage = false;
 
         public MainPage()
         {
@@ -139,6 +140,8 @@ namespace remote_wiring_experience
         /// <param name="args">button press event args</param>
         private void OnClick_DigitalModeToggleSwitch( object sender, RoutedEventArgs args )
         {
+            // This bool fixes the bug where voltage returns to 0v after PWM but the slider still represents 5v.
+            // Needed because switching from PWM to input to output automatically sets the pin to 0v.
             if (!navigated)
             {
                 var button = sender as ToggleSwitch;
@@ -153,6 +156,15 @@ namespace remote_wiring_experience
 
                 var mode = arduino.getPinMode(pin);
                 var nextMode = (mode == PinMode.OUTPUT) ? PinMode.INPUT : PinMode.OUTPUT;
+
+                // Fixes bug where voltage returns to 0v after pin input but slider still represents 5v.
+                // Needed because switching to output mode automatically sets pin to 0v.
+                resetVoltage = true;
+                if (nextMode == PinMode.OUTPUT)
+                {
+                    digitalStateToggleSwitches[pin].IsOn = false;
+                }
+                resetVoltage = false;
 
                 arduino.pinMode(pin, nextMode);
 
@@ -173,34 +185,37 @@ namespace remote_wiring_experience
         /// <param name="args">button press event args</param>
         private void OnClick_DigitalStateToggleSwitch( object sender, RoutedEventArgs args )
         {
-            var button = sender as ToggleSwitch;
-            var pin = GetPinFromButtonObject( button );
-
-            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
-            if( pin == 0 || pin == 1 )
+            if (!resetVoltage)
             {
-                ShowToast( "Pin unavailable.", "That pin is in use as a serial pin and cannot be used.", null );
-                return;
+                var button = sender as ToggleSwitch;
+                var pin = GetPinFromButtonObject(button);
+
+                //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
+                if (pin == 0 || pin == 1)
+                {
+                    ShowToast("Pin unavailable.", "That pin is in use as a serial pin and cannot be used.", null);
+                    return;
+                }
+
+                if (arduino.getPinMode(pin) != PinMode.OUTPUT)
+                {
+                    ShowToast("Incorrect PinMode!", "You must first set this pin to OUTPUT.", null);
+                    return;
+                }
+
+                var state = arduino.digitalRead(pin);
+                var nextState = (state == PinState.HIGH) ? PinState.LOW : PinState.HIGH;
+
+                arduino.digitalWrite(pin, nextState);
+
+                //telemetry
+                var properties = new Dictionary<string, string>();
+                properties.Add("pin_number", pin.ToString());
+                properties.Add("new_state", nextState.ToString());
+                App.Telemetry.TrackEvent("Digital_State_Toggle_Button_Pressed", properties);
+
+                UpdateDigitalPinIndicators(pin);
             }
-
-            if( arduino.getPinMode( pin ) != PinMode.OUTPUT )
-            {
-                ShowToast( "Incorrect PinMode!", "You must first set this pin to OUTPUT.", null );
-                return;
-            }
-
-            var state = arduino.digitalRead( pin );
-            var nextState = ( state == PinState.HIGH ) ? PinState.LOW : PinState.HIGH;
-
-            arduino.digitalWrite( pin, nextState );
-
-            //telemetry
-            var properties = new Dictionary<string, string>();
-            properties.Add( "pin_number", pin.ToString() );
-            properties.Add( "new_state", nextState.ToString() );
-            App.Telemetry.TrackEvent( "Digital_State_Toggle_Button_Pressed", properties );
-
-            UpdateDigitalPinIndicators( pin );
         }
 
 
@@ -653,7 +668,7 @@ namespace remote_wiring_experience
                 modeStack.Children.Add(toggleSwitch);
                 containerStack.Children.Add(modeStack);
 
-                //set up the value change slider
+                /*//set up the value change slider
                 var slider = new Slider();
                 slider.Orientation = Orientation.Horizontal;
                 slider.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -670,14 +685,15 @@ namespace remote_wiring_experience
                 slider.ValueChanged += OnValueChanged_AnalogSlider;
                 slider.PointerReleased += OnPointerReleased_AnalogSlider;
                 analogSliders.Add( i, slider );
-                containerStack.Children.Add( slider );
+                containerStack.Children.Add( slider );*/
 
                 //set up the indication text
                 var text3 = new TextBlock();
                 text3.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text3.VerticalAlignment = VerticalAlignment.Center;
                 text3.Margin = new Thickness( 2, 0, 0, 0 );
-                text3.Text = "";
+                text3.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text3.Text = "Cannot write to analog pins.";
                 text3.FontSize = 14;
                 analogTextBlocks.Add( i, text3 );
                 containerStack.Children.Add( text3 );
@@ -781,7 +797,7 @@ namespace remote_wiring_experience
                 text3.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text3.VerticalAlignment = VerticalAlignment.Center;
                 text3.Margin = new Thickness(3, 0, 0, 0);
-                text2.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text3.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
                 text3.Text = "Enable PWM to write values.";
                 text3.FontSize = 14;
                 text3.Name = "pwmtext_" + pwmPins[i];
@@ -888,23 +904,25 @@ namespace remote_wiring_experience
 
             if( isI2cEnabled && ( analogPinNumber == i2cPins[0] || analogPinNumber == i2cPins[1] ) )
             {
-                analogSliders[pin].IsEnabled = false;
+                //analogSliders[pin].IsEnabled = false;
             }
             else
                 switch( arduino.getPinMode( "A" + pin ) )
                 {
                     case PinMode.ANALOG:
-                        analogSliders[pin].Visibility = Visibility.Collapsed;
+                        //analogSliders[pin].Visibility = Visibility.Collapsed;
+                        analogTextBlocks[pin].Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 0, 0));
                         analogTextBlocks[pin].Text = "" + arduino.analogRead("A" + pin);
                         break;
 
                     case PinMode.I2C:
-                        analogSliders[pin].Visibility = Visibility.Collapsed;
+                        //analogSliders[pin].Visibility = Visibility.Collapsed;
                         break;
 
                     default:
-                        analogSliders[pin].Visibility = Visibility.Visible;
-                        analogTextBlocks[pin].Text = "";
+                        //analogSliders[pin].Visibility = Visibility.Visible;
+                        analogTextBlocks[pin].Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                        analogTextBlocks[pin].Text = "Cannot write to analog pins.";
                         break;
                 }
 
@@ -1177,6 +1195,11 @@ namespace remote_wiring_experience
             AnalogText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
             PWMText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
             AboutText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+
+            for (byte pin = 0; pin < numberOfAnalogPins; ++pin)
+            {
+                UpdatePwmPinModeIndicator(pin);
+            }
 
             App.Telemetry.TrackPageView("PWM_Controls_Page");
             lastPivotNavigationTime = DateTime.Now;

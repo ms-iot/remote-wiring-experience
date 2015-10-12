@@ -177,6 +177,9 @@ namespace remote_wiring_experience
                 return;
             }
 
+            //determine the selected baud rate
+            uint baudRate = Convert.ToUInt32( ( BaudRateComboBox.SelectedItem as string ) );
+
             //connection properties dictionary, used only for telemetry data
             var properties = new Dictionary<string, string>();
 
@@ -240,7 +243,7 @@ namespace remote_wiring_experience
             App.Arduino.DeviceConnectionFailed += OnConnectionFailed;
 
             connectionAttemptStartedTime = DateTime.Now;
-            App.Connection.begin( 115200, SerialConfig.SERIAL_8N1 );
+            App.Connection.begin( baudRate, SerialConfig.SERIAL_8N1 );
 
             //start a timer for connection timeout
             timeout = new DispatcherTimer();
@@ -264,7 +267,7 @@ namespace remote_wiring_experience
                 App.Telemetry.TrackRequest( "Connection_Failed_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, message, true );
 
                 ConnectMessage.Text = "Connection attempt failed: " + message;
-                SetUiEnabled( true );
+                Reset();
             } ) );
         }
 
@@ -292,7 +295,7 @@ namespace remote_wiring_experience
                 App.Telemetry.TrackRequest( "Connection_Timeout_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
 
                 ConnectMessage.Text = "Connection attempt timed out.";
-                SetUiEnabled( true );
+                Reset();
             } ) );
         }
 
@@ -314,12 +317,18 @@ namespace remote_wiring_experience
         private void OnConnectionCancelled()
         {
             ConnectMessage.Text = "Connection attempt cancelled.";
+            Reset();
+        }
+
+        private void Reset()
+        {
             App.Telemetry.TrackRequest( "Connection_Cancelled_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
 
             if( App.Connection != null )
             {
                 App.Connection.ConnectionEstablished -= OnConnectionEstablished;
                 App.Connection.ConnectionFailed -= OnConnectionFailed;
+                App.Connection.end();
             }
 
             if( cancelTokenSource != null )

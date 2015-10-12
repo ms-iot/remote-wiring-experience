@@ -10,6 +10,7 @@ using Windows.UI.Notifications;
 using Windows.UI.Xaml.Controls.Primitives;
 using Microsoft.Maker.RemoteWiring;
 using System.Diagnostics;
+using Windows.UI.Xaml.Input;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=234238
 
@@ -30,8 +31,6 @@ namespace remote_wiring_experience
         private int numberOfPwmPins = pwmPins.Length;
         private static byte[] i2cPins = { 18, 19 };
         private bool isI2cEnabled = false;
-
-        private FunctionPanel functionPanel;
 
         //stores image assets so that they can be loaded once and reused many times
         private Dictionary<string, BitmapImage> bitmaps;
@@ -118,50 +117,6 @@ namespace remote_wiring_experience
             } ) );
         }
 
-        /// <summary>
-        /// This function is called when the Windows Remote Arduino library receives a reply from the device in response to an I2C read request.
-        /// </summary>
-        /// <param name="address_">The address which is replying</param>
-        /// <param name="reg_">The register which is replying</param>
-        /// <param name="response">A datareader containing the raw reponse bytes from the device.</param>
-        private void I2c_OnI2cReply( byte address, byte reg, Windows.Storage.Streams.DataReader response )
-        {
-            //we must dispatch the change to the UI thread to change the indicator image
-            var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
-            {
-                var builder = new StringBuilder();
-                var bytes = new byte[response.UnconsumedBufferLength];
-                response.ReadBytes( bytes );
-                
-                for( int i = 0; i < bytes.Length; ++i )
-                {
-                    builder.Append( "[" ).Append( bytes[i].ToString( "x" ) ).Append( "] " );
-                }
-                string responseString = builder.ToString().TrimEnd();
-                I2cRawReplyTextBox.Text = responseString;
-
-                //start building telemetry
-                var properties = new Dictionary<string, string>();
-                properties.Add( "address", address.ToString() );
-                properties.Add( "register", reg.ToString() );
-                properties.Add( "raw_response_bytes_received", responseString );
-
-                try
-                {
-                    double processed = functionPanel.ProcessI2cReply( bytes );
-                    I2cProcessedReplyTextBox.Text = processed.ToString();
-                    properties.Add( "processed_response", processed.ToString() );
-                }
-                catch( Exception )
-                {
-                    I2cProcessedReplyTextBox.Text = "";
-                }
-                
-                //send telemetry
-                App.Telemetry.TrackEvent( "I2c_Read_Message_Succeeded", properties );
-            } ) );
-        }
-
 
         //******************************************************************************
         //* Button Callbacks
@@ -190,26 +145,6 @@ namespace remote_wiring_experience
             properties.Add( "pin_number", pin.ToString() );
             properties.Add( "new_mode", nextMode.ToString() );
             App.Telemetry.TrackEvent( "Analog_Mode_Toggle_Button_Pressed", properties );
-
-            //two of the analog pins are also the I2C pins (SDA and SCL), so if this pin is one of those, we just disabled I2C
-            if( isI2cEnabled )
-            {
-                if( i2cPins[0] == analogPinNumber )
-                {
-                    isI2cEnabled = false;
-                    arduino.pinMode( i2cPins[1], PinMode.OUTPUT );
-                    arduino.I2c.I2cReplyEvent -= I2c_OnI2cReply;
-                    App.Telemetry.TrackEvent( "I2C_Automatically_Disabled" );
-                }
-                else if( i2cPins[1] == analogPinNumber )
-                {
-                    isI2cEnabled = false;
-                    arduino.pinMode( i2cPins[0], PinMode.OUTPUT );
-                    arduino.I2c.I2cReplyEvent -= I2c_OnI2cReply;
-                    App.Telemetry.TrackEvent( "I2C_Automatically_Disabled" );
-                }
-            }
-
             UpdateAnalogPinModeIndicator( pin );
         }
 
@@ -224,6 +159,13 @@ namespace remote_wiring_experience
             var button = sender as Button;
             var image = button.Content as Image;
             var pin = GetPinFromButtonObject( button );
+            
+            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
+            if( pin == 0 || pin == 1 )
+            {
+                ShowToast( "Pin unavailable.", "That pin is in use as a serial pin and cannot be used.", null );
+                return;
+            }
 
             var mode = arduino.getPinMode( pin );
             var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.INPUT : PinMode.OUTPUT;
@@ -249,6 +191,13 @@ namespace remote_wiring_experience
             var button = sender as Button;
             var image = button.Content as Image;
             var pin = GetPinFromButtonObject( button );
+
+            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
+            if( pin == 0 || pin == 1 )
+            {
+                ShowToast( "Pin unavailable.", "That pin is in use as a serial pin and cannot be used.", null );
+                return;
+            }
 
             if( arduino.getPinMode( pin ) != PinMode.OUTPUT )
             {
@@ -282,12 +231,21 @@ namespace remote_wiring_experience
 
             pwmTextBoxes[pin].Text = args.NewValue.ToString();
             arduino.analogWrite( pin, (byte)args.NewValue );
+        }
+
+        /// <summary>
+        /// This function helps to process telemetry events when manipulation of a PWM slider is complete, 
+        /// rather than after each tick.
+        /// </summary>
+        /// <param name="sender">the slider which was released</param>
+        /// <param name="args">the slider release event args</param>
+        private void OnPointerReleased_PwmSlider( object sender, PointerRoutedEventArgs args )
+        {
+            var slider = sender as Slider;
+            var pin = Convert.ToByte( slider.Name.Substring( slider.Name.IndexOf( '_' ) + 1 ) );
 
             //telemetry
-            var properties = new Dictionary<string, string>();
-            properties.Add( "pin_number", pin.ToString() );
-            properties.Add( "analog_value", args.NewValue.ToString() );
-            App.Telemetry.TrackEvent( "Pwm_Slider_Value_Changed", properties );
+            SendPwmTelemetryEvent( pin, slider.Value );
         }
 
         /// <summary>
@@ -311,6 +269,21 @@ namespace remote_wiring_experience
             {
                 textbox.BorderBrush = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 255, 0, 0 ) );
             }
+        }
+
+        /// <summary>
+        /// This function helps to process telemetry events when manipulation of a PWM text box is complete, 
+        /// rather than after each character is typed
+        /// </summary>
+        /// <param name="sender">the text box which was manipulated</param>
+        /// <param name="e">the lost focus event args</param>
+        private void OnLostFocus_PwmTextBox( object sender, RoutedEventArgs e )
+        {
+            var slider = sender as Slider;
+            var pin = Convert.ToByte( slider.Name.Substring( slider.Name.IndexOf( '_' ) + 1 ) );
+
+            //telemetry
+            SendPwmTelemetryEvent( pin, slider.Value );
         }
 
         /// <summary>
@@ -339,145 +312,6 @@ namespace remote_wiring_experience
         }
 
 
-        /// <summary>
-        /// Invoked when the i2c enable button is pressed
-        /// </summary>
-        /// <param name="sender">the button being pressed</param>
-        /// <param name="args">button press event args</param>
-        private void OnClick_I2cToggleButton( object sender, RoutedEventArgs e )
-        {
-            if( !isI2cEnabled )
-            {
-                arduino.I2c.enable();
-                arduino.I2c.I2cReplyEvent += I2c_OnI2cReply;
-                isI2cEnabled = true;
-
-                App.Telemetry.TrackEvent( "I2c_Enabled" );
-            }
-            UpdateI2cControls();
-        }
-
-        /// <summary>
-        /// Invoked when the i2c write button is pressed
-        /// </summary>
-        /// <param name="sender">the button being pressed</param>
-        /// <param name="args">button press event args</param>
-        private void OnClick_I2cWriteButton( object sender, RoutedEventArgs e )
-        {
-            try
-            {
-                uint address;
-                uint register;
-                if( !VerifyAddressAndRegister( out address, out register ) ) return;
-
-                //it is OK to not send any data with your message
-                string message = I2cWriteDataTextBox.Text;
-                uint[] bytes = null;
-
-                if( !string.IsNullOrEmpty( message ) )
-                {
-                    string[] byteStrings = I2cWriteDataTextBox.Text.Split( new char[] { ' ' } );
-                    bytes = new uint[byteStrings.Length];
-                    for( int i = 0; i < byteStrings.Length; ++i )
-                    {
-                        bytes[i] = ParsePositiveDecimalValueOrThrow( byteStrings[i] );
-                        if( bytes[i] > 255 )
-                        {
-                            ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
-                            return;
-                        }
-                    }
-                }
-
-                arduino.I2c.beginTransmission( (byte)address );
-                arduino.I2c.write( (byte)register );
-                if( bytes != null )
-                {
-                    foreach( int val in bytes )
-                    {
-                        arduino.I2c.write( (byte)val );
-                    }
-                }
-                arduino.I2c.endTransmission();
-
-                //telemetry
-                var properties = new Dictionary<string, string>();
-                properties.Add( "address", address.ToString() );
-                properties.Add( "register", register.ToString() );
-                properties.Add( "message", message );
-                App.Telemetry.TrackEvent( "I2c_Write_Message_Succeeded", properties );
-            }
-            catch( FormatException )
-            {
-                ShowToast( "Invalid address, register, or data", "Enter numbers in decimal, hex, or binary", null );
-            }
-        }
-
-        /// <summary>
-        /// Invoked when the i2c read button is pressed
-        /// </summary>
-        /// <param name="sender">the button being pressed</param>
-        /// <param name="args">button press event args</param>
-        private void OnClick_I2cReadButton( object sender, RoutedEventArgs e )
-        {
-            if( string.IsNullOrEmpty( I2cReadQuantityTextBox.Text ) )
-            {
-                ShowToast( "Nothing sent.", "You must specify how many bytes to read.", null );
-                return;
-            }
-
-            try
-            {
-                uint address;
-                uint register;
-                if( !VerifyAddressAndRegister( out address, out register ) ) return;
-
-                uint read = ParsePositiveDecimalValueOrThrow( I2cReadQuantityTextBox.Text );
-                if( read > 255 )
-                {
-                    ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
-                    return;
-                }
-
-                arduino.I2c.requestFrom( (byte)address, (byte)read );
-                
-                //telemetry
-                var properties = new Dictionary<string, string>();
-                properties.Add( "address", address.ToString() );
-                properties.Add( "register", register.ToString() );
-                properties.Add( "number_of_response_bytes_expected", read.ToString() );
-                App.Telemetry.TrackEvent( "I2c_Read_Message_Succeeded", properties );
-            }
-            catch( FormatException )
-            {
-                ShowToast( "Invalid read quantity", "You must enter a number value.", null );
-            }
-        }
-
-        /// <summary>
-        /// This function is invoked when the Read Quantity text box is modified
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="e"></param>
-        private void OnTextChanged_I2cReadQuantityTextBox( object sender, TextChangedEventArgs e )
-        {
-            I2cReadButton.IsEnabled = !string.IsNullOrEmpty( I2cReadQuantityTextBox.Text );
-
-            uint num = 0;
-            try
-            {
-                num = ParsePositiveDecimalValueOrThrow( I2cReadQuantityTextBox.Text );
-            }
-            catch( FormatException )
-            {
-                I2cReadButton.IsEnabled = false;
-            }
-
-            functionPanel.NumberOfBytes = num;
-        }
-
-
-
         //******************************************************************************
         //* UI Support Functions
         //******************************************************************************
@@ -491,7 +325,10 @@ namespace remote_wiring_experience
             bitmaps.Add( "low", new BitmapImage( new Uri( BaseUri, @"Assets/low.png" ) ) );
             bitmaps.Add( "analog", new BitmapImage( new Uri( BaseUri, @"Assets/analog.png" ) ) );
             bitmaps.Add( "enabled", new BitmapImage( new Uri( BaseUri, @"Assets/enabled.png" ) ) );
+            bitmaps.Add( "disabled", new BitmapImage( new Uri( BaseUri, @"Assets/disabled.png" ) ) );
             bitmaps.Add( "enablei2c", new BitmapImage( new Uri( BaseUri, @"Assets/enablei2c.png" ) ) );
+            bitmaps.Add( "inuse_0", new BitmapImage( new Uri( BaseUri, @"Assets/inuse_0.png" ) ) );
+            bitmaps.Add( "inuse_1", new BitmapImage( new Uri( BaseUri, @"Assets/inuse_1.png" ) ) );
 
             for( int i = 0; i < numberOfAnalogPins; ++i )
             {
@@ -532,11 +369,6 @@ namespace remote_wiring_experience
                 case "Analog":
                     App.Telemetry.TrackPageView( "Analog_Controls_Page" );
                     UpdateAnalogControls();
-                    break;
-
-                case "I2C":
-                    App.Telemetry.TrackPageView( "I2C_Controls_Page" );
-                    UpdateI2cControls();
                     break;
             }
             uiControlsLoaded[args.Item.Name] = true;
@@ -579,29 +411,6 @@ namespace remote_wiring_experience
             {
                 UpdateDigitalPinModeIndicator( pin );
                 UpdateDigitalPinStateIndicator( pin );
-            }
-        }
-
-        /// <summary>
-        /// Updates the UI for the I2C control page as necessary
-        /// </summary>
-        private void UpdateI2cControls()
-        {
-            if( !uiControlsLoaded["I2C"] ) loadI2cControls();
-
-            if( isI2cEnabled )
-            {
-                I2cToggleImage.Source = bitmaps["enabled"];
-
-                I2cVisibilityPanel.Visibility = Visibility.Visible;
-                I2cReplyProcessPanel.Children.Clear();
-                functionPanel = new FunctionPanel( 0 );
-                I2cReplyProcessPanel.Children.Add( functionPanel );
-            }
-            else
-            {
-                I2cToggleImage.Source = bitmaps["enablei2c"];
-                I2cVisibilityPanel.Visibility = Visibility.Collapsed;
             }
         }
 
@@ -689,6 +498,7 @@ namespace remote_wiring_experience
                 slider.StepFrequency = 32;
                 slider.TickFrequency = 32;
                 slider.ValueChanged += OnValueChanged_PwmSlider;
+                slider.PointerReleased += OnPointerReleased_PwmSlider;
                 slider.Minimum = 0;
                 slider.Maximum = 255;
                 slider.Name = "slider_" + pwmPins[i];
@@ -705,6 +515,7 @@ namespace remote_wiring_experience
                 text.Width = 40;
                 text.Visibility = Visibility.Collapsed;
                 text.TextChanged += OnTextChanged_PwmTextBox;
+                text.LostFocus += OnLostFocus_PwmTextBox;
                 pwmTextBoxes.Add( pwmPins[i], text );
                 stack.Children.Add( text );
 
@@ -775,9 +586,18 @@ namespace remote_wiring_experience
             if( !digitalStateImages.ContainsKey( pin ) ) return;
 
             ImageSource image;
-            if( arduino.getPinMode( pin ) == PinMode.PWM ) image = bitmaps["analog"];
-            else if( arduino.digitalRead( pin ) == PinState.HIGH ) image = bitmaps["high"];
-            else image = bitmaps["low"];
+
+            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
+            if( pin == 0 || pin == 1 )
+            {
+                image = bitmaps["disabled"];
+            }
+            else
+            {
+                if( arduino.getPinMode( pin ) == PinMode.PWM ) image = bitmaps["analog"];
+                else if( arduino.digitalRead( pin ) == PinState.HIGH ) image = bitmaps["high"];
+                else image = bitmaps["low"];
+            }
 
             digitalStateImages[pin].Source = image;
         }
@@ -791,7 +611,13 @@ namespace remote_wiring_experience
             if( !digitalModeImages.ContainsKey( pin ) ) return;
 
             ImageSource image;
-            switch( arduino.getPinMode( pin ) )
+
+            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
+            if( pin == 0 || pin == 1 )
+            {
+                image = bitmaps["inuse_" + pin];
+            }
+            else switch( arduino.getPinMode( pin ) )
             {
                 case PinMode.INPUT:
                     image = bitmaps["input_" + pin];
@@ -913,7 +739,14 @@ namespace remote_wiring_experience
             var toastDom = new Windows.Data.Xml.Dom.XmlDocument();
             toastDom.LoadXml( builder.ToString() );
             var toast = new ToastNotification( toastDom );
-            ToastNotificationManager.CreateToastNotifier().Show( toast );
+            try
+            {
+                ToastNotificationManager.CreateToastNotifier().Show( toast );
+            }
+            catch( Exception )
+            {
+                //do nothing, toast will gracefully fail
+            }
         }
 
 
@@ -975,34 +808,17 @@ namespace remote_wiring_experience
             return (byte)( pin + numberOfDigitalPins );
         }
 
-
         /// <summary>
-        /// Verifies that the address and register text fields are valid and parses the values if so.
+        /// This function sends a single PWM telemetry event
         /// </summary>
-        /// <param name="address">the address variable to be updated</param>
-        /// <param name="register">the register variable to be updated</param>
-        /// <returns></returns>
-        private bool VerifyAddressAndRegister( out uint address, out uint register )
+        /// <param name="pin">the pin number to be reported</param>
+        /// <param name="value">the value of the pin</param>
+        private void SendPwmTelemetryEvent( byte pin, double value )
         {
-            if( string.IsNullOrEmpty( I2cAddressTextBox.Text ) || string.IsNullOrEmpty( I2cRegisterTextBox.Text ) )
-            {
-                ShowToast( "Nothing sent.", "You must specify an address and register.", null );
-                address = 0;
-                register = 0;
-                return false;
-            }
-
-            address = ParsePositiveDecimalValueOrThrow( I2cAddressTextBox.Text );
-            register = ParsePositiveDecimalValueOrThrow( I2cRegisterTextBox.Text );
-            if( address > 255 || register > 255 )
-            {
-                ShowToast( "Value too large.", "Byte values cannot be larger than 255", null );
-                address = 0;
-                register = 0;
-                return false;
-            }
-
-            return true;
+            var properties = new Dictionary<string, string>();
+            properties.Add( "pin_number", pin.ToString() );
+            properties.Add( "analog_value", value.ToString() );
+            App.Telemetry.TrackEvent( "Pwm_Slider_Value_Changed", properties );
         }
     }
 }

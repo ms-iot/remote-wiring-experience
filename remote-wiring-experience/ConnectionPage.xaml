@@ -29,11 +29,11 @@
                     <ColumnDefinition Width="84" />
                     <ColumnDefinition Width="84" />
                 </Grid.ColumnDefinitions>
-                <TextBlock Grid.Column="0" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12" Foreground="#0E7FD9">Connection</TextBlock>
-                <TextBlock Grid.Column="1" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">Digital</TextBlock>
-                <TextBlock Grid.Column="2" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">Analog</TextBlock>
-                <TextBlock Grid.Column="3" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">PWM</TextBlock>
-                <TextBlock Grid.Column="4" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">About</TextBlock>
+                <TextBlock Grid.Column="0" x:Name="ConnectionText" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12" Foreground="#0E7FD9">Connection</TextBlock>
+                <TextBlock Grid.Column="1" x:Name="DigitalText" PointerEntered="DigitalButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">Digital</TextBlock>
+                <TextBlock Grid.Column="2" x:Name="AnalogText" PointerEntered="AnalogButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">Analog</TextBlock>
+                <TextBlock Grid.Column="3" x:Name="PWMText" PointerEntered="PWMButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">PWM</TextBlock>
+                <TextBlock Grid.Column="4" x:Name="AboutText" PointerEntered="AboutButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">About</TextBlock>
             </Grid>
         </StackPanel>
 
@@ -46,11 +46,11 @@
                     <ColumnDefinition Width="84" />
                     <ColumnDefinition Width="84" />
                 </Grid.ColumnDefinitions>
-                <Rectangle Grid.Column="0" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Visible"></Rectangle>
-                <Rectangle Grid.Column="1" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
-                <Rectangle Grid.Column="2" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
-                <Rectangle Grid.Column="3" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
-                <Rectangle Grid.Column="4" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
+                <Rectangle x:Name="ConnectionRectangle" Grid.Column="0" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Visible"></Rectangle>
+                <Rectangle x:Name="DigitalRectangle" Grid.Column="1" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
+                <Rectangle x:Name="AnalogRectangle" Grid.Column="2" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
+                <Rectangle x:Name="PWMRectangle" Grid.Column="3" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
+                <Rectangle x:Name="AboutRectangle" Grid.Column="4" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
             </Grid>
         </StackPanel>
 

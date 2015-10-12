@@ -36,17 +36,15 @@ namespace remote_wiring_experience
         //stores image assets so that they can be loaded once and reused many times
         private Dictionary<string, BitmapImage> bitmaps;
 
-        //remembers what UI control elements have been loaded
-        private Dictionary<string, bool> uiControlsLoaded;
-
         //these dictionaries store the loaded UI elements for easy access by pin number
         private Dictionary<byte, ToggleSwitch> digitalModeToggleSwitches;
         private Dictionary<byte, ToggleSwitch> digitalStateToggleSwitches;
+        private Dictionary<byte, TextBlock> digitalStateTextBlocks;
         private Dictionary<byte, ToggleSwitch> analogModeToggleSwitches;
         private Dictionary<byte, Slider> analogSliders;
         private Dictionary<byte, TextBlock> analogTextBlocks;
-        private Dictionary<byte, TextBox> pwmTextBoxes;
-        private Dictionary<byte, Image> pwmModeImages;
+        private Dictionary<byte, ToggleSwitch> pwmModeToggleSwitches;
+        private Dictionary<byte, TextBlock> pwmTextBlocks;
         private Dictionary<byte, Slider> pwmSliders;
         
         private RemoteDevice arduino;
@@ -54,29 +52,25 @@ namespace remote_wiring_experience
         //telemetry-related items
         DateTime lastPivotNavigationTime;
 
+        private int currentPage = 0;
+        private String[] pages = { "Digital", "Analog", "PWM", "About" };
+        private bool navigated = false;
+
         public MainPage()
         {
             this.InitializeComponent();
 
             bitmaps = new Dictionary<string, BitmapImage>();
-            uiControlsLoaded = new Dictionary<string, bool>();
-            analogSliders = new Dictionary<byte, Slider>();
-            pwmSliders = new Dictionary<byte, Slider>();
+
             digitalModeToggleSwitches = new Dictionary<byte, ToggleSwitch>();
             digitalStateToggleSwitches = new Dictionary<byte, ToggleSwitch>();
+            digitalStateTextBlocks = new Dictionary<byte, TextBlock>();
             analogModeToggleSwitches = new Dictionary<byte, ToggleSwitch>();
+            analogSliders = new Dictionary<byte, Slider>();
             analogTextBlocks = new Dictionary<byte, TextBlock>();
-            pwmTextBoxes = new Dictionary<byte, TextBox>();
-            pwmModeImages = new Dictionary<byte, Image>();
-
-            /*foreach( var item in DeviceControlPivot.Items )
-            {
-                uiControlsLoaded.Add( ( (PivotItem)item ).Name, false );
-            }*/
-            uiControlsLoaded.Add("Digital", false);
-            uiControlsLoaded.Add("Analog", false);
-            uiControlsLoaded.Add("PWM", false);
-            uiControlsLoaded.Add("About", false);
+            pwmModeToggleSwitches = new Dictionary<byte, ToggleSwitch>();
+            pwmTextBlocks = new Dictionary<byte, TextBlock>();
+            pwmSliders = new Dictionary<byte, Slider>();
         }
 
         protected override void OnNavigatedTo( NavigationEventArgs e )
@@ -87,6 +81,11 @@ namespace remote_wiring_experience
             arduino = App.Arduino;
             arduino.DigitalPinUpdated += Arduino_OnDigitalPinUpdated;
             arduino.AnalogPinUpdated += Arduino_OnAnalogPinUpdated;
+
+            for (byte pin = 0; pin < numberOfDigitalPins; ++pin)
+            {
+                UpdateDigitalPinIndicators(pin);
+            }
 
             App.Telemetry.TrackPageView("Digital_Controls_Page");
             lastPivotNavigationTime = DateTime.Now;
@@ -107,7 +106,8 @@ namespace remote_wiring_experience
             //we must dispatch the change to the UI thread to update the text field.
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
-                //UpdateAnalogIndicators( pin, value );
+                UpdateAnalogIndicators( pin, value );
+                UpdatePwmPinModeIndicator(pin);
             } ) );
         }
 
@@ -122,7 +122,7 @@ namespace remote_wiring_experience
             //we must dispatch the change to the UI thread to change the indicator image
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
-                //UpdateDigitalPinStateIndicator( pin );
+                UpdateDigitalPinIndicators( pin );
             } ) );
         }
 
@@ -139,29 +139,31 @@ namespace remote_wiring_experience
         /// <param name="args">button press event args</param>
         private void OnClick_DigitalModeToggleSwitch( object sender, RoutedEventArgs args )
         {
-            var button = sender as ToggleSwitch;
-            Debug.WriteLine(button.Name);
-            var pin = GetPinFromButtonObject( button );
-            
-            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
-            if( pin == 0 || pin == 1 )
+            if (!navigated)
             {
-                ShowToast( "Pin unavailable.", "That pin is in use as a serial pin and cannot be used.", null );
-                return;
+                var button = sender as ToggleSwitch;
+                var pin = GetPinFromButtonObject(button);
+
+                //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
+                if (pin == 0 || pin == 1)
+                {
+                    ShowToast("Pin unavailable.", "That pin is in use as a serial pin and cannot be used.", null);
+                    return;
+                }
+
+                var mode = arduino.getPinMode(pin);
+                var nextMode = (mode == PinMode.OUTPUT) ? PinMode.INPUT : PinMode.OUTPUT;
+
+                arduino.pinMode(pin, nextMode);
+
+                //telemetry
+                var properties = new Dictionary<string, string>();
+                properties.Add("pin_number", pin.ToString());
+                properties.Add("new_mode", nextMode.ToString());
+                App.Telemetry.TrackEvent("Digital_Mode_Toggle_Button_Pressed", properties);
+
+                UpdateDigitalPinIndicators(pin);
             }
-
-            var mode = arduino.getPinMode( pin );
-            var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.INPUT : PinMode.OUTPUT;
-
-            arduino.pinMode( pin, nextMode );
-
-            //telemetry
-            var properties = new Dictionary<string, string>();
-            properties.Add( "pin_number", pin.ToString() );
-            properties.Add( "new_mode", nextMode.ToString() );
-            App.Telemetry.TrackEvent( "Digital_Mode_Toggle_Button_Pressed", properties );
-
-            //UpdateDigitalPinModeIndicator( pin );
         }
 
         /// <summary>
@@ -198,7 +200,7 @@ namespace remote_wiring_experience
             properties.Add( "new_state", nextState.ToString() );
             App.Telemetry.TrackEvent( "Digital_State_Toggle_Button_Pressed", properties );
 
-            //UpdateDigitalPinStateIndicator( pin );
+            UpdateDigitalPinIndicators( pin );
         }
 
 
@@ -213,7 +215,8 @@ namespace remote_wiring_experience
             var pin = GetPinFromButtonObject(button);
             var analogPinNumber = ConvertAnalogPinToPinNumber(pin);
 
-            var mode = arduino.getPinMode(analogPinNumber);
+            //var mode = arduino.getPinMode(analogPinNumber);
+            var mode = arduino.getPinMode("A" + pin);
             var nextMode = (mode == PinMode.OUTPUT) ? PinMode.ANALOG : PinMode.OUTPUT;
 
             arduino.pinMode("A" + pin, nextMode);
@@ -223,7 +226,59 @@ namespace remote_wiring_experience
             properties.Add("pin_number", pin.ToString());
             properties.Add("new_mode", nextMode.ToString());
             App.Telemetry.TrackEvent("Analog_Mode_Toggle_Button_Pressed", properties);
-            //UpdateAnalogPinModeIndicator(pin);
+
+            UpdateAnalogPinModeIndicator(pin);
+        }
+
+        /// <summary>
+        /// Invoked when the slider value for a PWM pin is modified.
+        /// </summary>
+        /// <param name="sender">the slider being manipulated</param>
+        /// <param name="args">slider value changed event args</param>
+        private void OnValueChanged_AnalogSlider(object sender, RangeBaseValueChangedEventArgs args)
+        {
+            var slider = sender as Slider;
+            var pin = Convert.ToByte(slider.Name.Substring(slider.Name.IndexOf('_') + 1));
+
+            arduino.analogWrite(pin, (byte)args.NewValue);
+        }
+
+        /// <summary>
+        /// This function helps to process telemetry events when manipulation of a PWM slider is complete, 
+        /// rather than after each tick.
+        /// </summary>
+        /// <param name="sender">the slider which was released</param>
+        /// <param name="args">the slider release event args</param>
+        private void OnPointerReleased_AnalogSlider(object sender, PointerRoutedEventArgs args)
+        {
+            var slider = sender as Slider;
+            var pin = Convert.ToByte(slider.Name.Substring(slider.Name.IndexOf('_') + 1));
+
+            //telemetry
+            SendPwmTelemetryEvent(pin, slider.Value);
+        }
+
+        /// <summary>
+        /// Invoked when the pwm mode toggle button is tapped or pressed
+        /// </summary>
+        /// <param name="sender">the button being pressed</param>
+        /// <param name="args">button press event args</param>
+        private void OnClick_PwmModeToggleSwitch(object sender, RoutedEventArgs args)
+        {
+            var button = sender as ToggleSwitch;
+            var pin = GetPinFromButtonObject(button);
+
+            var mode = arduino.getPinMode(pin);
+            var nextMode = (mode == PinMode.PWM) ? PinMode.INPUT : PinMode.PWM;
+
+            //telemetry
+            var properties = new Dictionary<string, string>();
+            properties.Add("pin_number", pin.ToString());
+            properties.Add("new_state", nextMode.ToString());
+            App.Telemetry.TrackEvent("Pwm_Mode_Toggle_Button_Pressed", properties);
+
+            arduino.pinMode(pin, nextMode);
+            UpdatePwmPinModeIndicator(pin);
         }
 
         /// <summary>
@@ -236,7 +291,7 @@ namespace remote_wiring_experience
             var slider = sender as Slider;
             var pin = Convert.ToByte( slider.Name.Substring( slider.Name.IndexOf( '_' ) + 1 ) );
 
-            pwmTextBoxes[pin].Text = args.NewValue.ToString();
+            //pwmTextBlocks[pin].Text = args.NewValue.ToString();
             arduino.analogWrite( pin, (byte)args.NewValue );
         }
 
@@ -255,7 +310,7 @@ namespace remote_wiring_experience
             SendPwmTelemetryEvent( pin, slider.Value );
         }
 
-        /// <summary>
+        /*/// <summary>
         /// Invoked when the text value for a PWM pin is modified
         /// </summary>
         /// <param name="sender">the slider being manipulated</param>
@@ -276,9 +331,9 @@ namespace remote_wiring_experience
             {
                 textbox.BorderBrush = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 255, 0, 0 ) );
             }
-        }
+        }*/
 
-        /// <summary>
+        /*/// <summary>
         /// This function helps to process telemetry events when manipulation of a PWM text box is complete, 
         /// rather than after each character is typed
         /// </summary>
@@ -291,32 +346,7 @@ namespace remote_wiring_experience
 
             //telemetry
             SendPwmTelemetryEvent( pin, slider.Value );
-        }
-
-        /// <summary>
-        /// Invoked when the pwm mode toggle button is tapped or pressed
-        /// </summary>
-        /// <param name="sender">the button being pressed</param>
-        /// <param name="args">button press event args</param>
-        private void OnClick_PwmModeToggleButton( object sender, RoutedEventArgs args )
-        {
-            var button = sender as ToggleSwitch;
-            var pin = GetPinFromButtonObject( button );
-
-            var mode = arduino.getPinMode( pin );
-            var nextMode = ( mode == PinMode.PWM ) ? PinMode.INPUT : PinMode.PWM;
-
-            //telemetry
-            var properties = new Dictionary<string, string>();
-            properties.Add( "pin_number", pin.ToString() );
-            properties.Add( "new_state", nextMode.ToString() );
-            App.Telemetry.TrackEvent( "Pwm_Mode_Toggle_Button_Pressed", properties );
-
-            arduino.pinMode( pin, nextMode );
-            UpdatePwmPinModeIndicator( pin );
-            pwmSliders[pin].Visibility = ( nextMode == PinMode.PWM ) ? Visibility.Visible : Visibility.Collapsed;
-            pwmTextBoxes[pin].Visibility = ( nextMode == PinMode.PWM ) ? Visibility.Visible : Visibility.Collapsed;
-        }
+        }*/
 
 
         //******************************************************************************
@@ -398,17 +428,17 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="sender"></param>
         /// <param name="args"></param>
-        private void Pivot_PivotItemUnloading( Pivot sender, PivotItemEventArgs args )
+        /*private void Pivot_PivotItemUnloading( Pivot sender, PivotItemEventArgs args )
         {
             App.Telemetry.TrackMetric( "Pivot_" + sender.Name + "_Time_Spent_In_Seconds", ( DateTime.Now - lastPivotNavigationTime ).TotalSeconds );
-        }
+        }*/
 
-        /// <summary>
+        /*/// <summary>
         /// Updates the UI for the analog control page as necessary
         /// </summary>
         private void UpdateAnalogControls()
         {
-            if( !uiControlsLoaded["Analog"] ) loadAnalogControls();
+            //if( !uiControlsLoaded["Analog"] ) loadAnalogControls();
             for( byte pin = 0; pin < numberOfAnalogPins; ++pin )
             {
                 UpdateAnalogPinModeIndicator( pin );
@@ -418,20 +448,19 @@ namespace remote_wiring_experience
             {
                 UpdatePwmPinModeIndicator( pwmPins[i] );
             }
-        }
+        }*/
 
-        /// <summary>
+        /*/// <summary>
         /// Updates the UI for the digital control page as necessary
         /// </summary>
         private void UpdateDigitalControls()
         {
-            if( !uiControlsLoaded["Digital"] ) loadDigitalControls();
+            //if( !uiControlsLoaded["Digital"] ) loadDigitalControls();
             for( byte pin = 0; pin < numberOfDigitalPins; ++pin )
             {
-                //UpdateDigitalPinModeIndicator( pin );
-                UpdateDigitalPinStateIndicator( pin );
+                UpdateDigitalPinIndicators( pin );
             }
-        }
+        }*/
 
         /// <summary>
         /// Adds the necessary digital controls to a StackPanel created for the Digital page.  This will only be called on navigation from the Connections page.
@@ -529,6 +558,24 @@ namespace remote_wiring_experience
                 toggleSwitch2.OffContent = offContent2;
                 digitalStateToggleSwitches.Add(i, toggleSwitch2);
 
+                var text3 = new TextBlock();
+                text3.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text3.VerticalAlignment = VerticalAlignment.Center;
+                text3.Margin = new Thickness(0, 0, 0, 0);
+                if (i == 1 || i == 0)
+                {
+                    text3.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                    text3.Text = "Disabled for serial connection.";
+                }
+                else
+                {
+                    text3.Text = "0v";
+                }
+                text3.FontSize = 14;
+                text3.Visibility = Visibility.Collapsed;
+                digitalStateTextBlocks.Add(i, text3);
+
+                stateStack.Children.Add(text3);
                 stateStack.Children.Add(toggleSwitch2);
                 containerStack.Children.Add(stateStack);
 
@@ -584,7 +631,7 @@ namespace remote_wiring_experience
                 modeStack.Orientation = Orientation.Horizontal;
                 modeStack.FlowDirection = FlowDirection.LeftToRight;
                 modeStack.HorizontalAlignment = HorizontalAlignment.Stretch;
-                modeStack.Margin = new Thickness(92, 0, 0, 0);
+                modeStack.Margin = new Thickness(88, 0, 0, 0);
 
                 var toggleSwitch = new ToggleSwitch();
                 toggleSwitch.HorizontalAlignment = HorizontalAlignment.Left;
@@ -608,15 +655,20 @@ namespace remote_wiring_experience
 
                 //set up the value change slider
                 var slider = new Slider();
-                slider.Visibility = Visibility.Collapsed;
                 slider.Orientation = Orientation.Horizontal;
                 slider.HorizontalAlignment = HorizontalAlignment.Stretch;
-                slider.IsEnabled = false;
+                slider.VerticalAlignment = VerticalAlignment.Center;
+                slider.IsEnabled = true;
                 slider.TickFrequency = 128;
+                slider.SmallChange = 128;
                 slider.Minimum = 0;
                 slider.Maximum = 1023;
                 slider.Name = "slider_" + i;
                 slider.Width = 180;
+                slider.Height = 34;
+                slider.Margin = new Thickness(3, 0, 0, 0);
+                slider.ValueChanged += OnValueChanged_AnalogSlider;
+                slider.PointerReleased += OnPointerReleased_AnalogSlider;
                 analogSliders.Add( i, slider );
                 containerStack.Children.Add( slider );
 
@@ -624,8 +676,9 @@ namespace remote_wiring_experience
                 var text3 = new TextBlock();
                 text3.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text3.VerticalAlignment = VerticalAlignment.Center;
-                text3.Margin = new Thickness( 10, 0, 0, 6 );
-                text3.Text = "Tap to enable.";
+                text3.Margin = new Thickness( 2, 0, 0, 0 );
+                text3.Text = "";
+                text3.FontSize = 14;
                 analogTextBlocks.Add( i, text3 );
                 containerStack.Children.Add( text3 );
 
@@ -642,24 +695,67 @@ namespace remote_wiring_experience
             //add controls and value sliders for each pwm pin the board supports
             for (byte i = 0; i < numberOfPwmPins; ++i)
             {
-                var stack = new StackPanel();
-                stack.Orientation = Orientation.Horizontal;
-                stack.FlowDirection = FlowDirection.LeftToRight;
-                stack.HorizontalAlignment = HorizontalAlignment.Stretch;
+                // Container stack to hold all pieces of new row of pins.
+                var containerStack = new StackPanel();
+                containerStack.Orientation = Orientation.Horizontal;
+                containerStack.FlowDirection = FlowDirection.LeftToRight;
+                containerStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+                containerStack.Margin = new Thickness(8, 0, 0, 20);
 
-                //set up the mode toggle button
-                var button = new Button();
-                var image = new Image();
-                image.Stretch = Stretch.Uniform;
-                pwmModeImages.Add(pwmPins[i], image);
-                button.Content = image;
-                button.HorizontalAlignment = HorizontalAlignment.Center;
-                button.VerticalAlignment = VerticalAlignment.Center;
-                button.Padding = new Thickness();
-                button.Margin = new Thickness(5, 0, 5, 0);
-                button.Name = "pwm_" + pwmPins[i];
-                button.Click += OnClick_PwmModeToggleButton;
-                stack.Children.Add(button);
+                // Set up the pin text.
+                var textStack = new StackPanel();
+                textStack.Orientation = Orientation.Vertical;
+                textStack.FlowDirection = FlowDirection.LeftToRight;
+                textStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+
+                var text = new TextBlock();
+                text.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text.VerticalAlignment = VerticalAlignment.Center;
+                text.Margin = new Thickness(0, 0, 0, 0);
+                text.Text = "Pin " + pwmPins[i];
+                text.FontSize = 14;
+                text.FontWeight = FontWeights.SemiBold;
+
+                var text2 = new TextBlock();
+                text2.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text2.VerticalAlignment = VerticalAlignment.Center;
+                text2.Margin = new Thickness(0, 0, 0, 0);
+                text2.Text = "PWM";
+                text2.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text2.FontSize = 14;
+                text2.FontWeight = FontWeights.SemiBold;
+
+                textStack.Children.Add(text);
+                textStack.Children.Add(text2);
+                containerStack.Children.Add(textStack);
+
+                // Set up the mode toggle button.
+                var modeStack = new StackPanel();
+                modeStack.Orientation = Orientation.Horizontal;
+                modeStack.FlowDirection = FlowDirection.LeftToRight;
+                modeStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+                modeStack.Margin = new Thickness(88, 0, 0, 0);
+
+                var toggleSwitch = new ToggleSwitch();
+                toggleSwitch.HorizontalAlignment = HorizontalAlignment.Left;
+                toggleSwitch.VerticalAlignment = VerticalAlignment.Center;
+                if (pwmPins[i] == 10 || pwmPins[i] == 13) { toggleSwitch.Margin = new Thickness(13, 0, 5, 0); }
+                else { toggleSwitch.Margin = new Thickness(15, 0, 5, 0); }
+                toggleSwitch.Name = "pwmmode_" + pwmPins[i];
+                toggleSwitch.Toggled += OnClick_PwmModeToggleSwitch;
+
+                var onContent = new TextBlock();
+                onContent.Text = "Enabled";
+                onContent.FontSize = 14;
+                toggleSwitch.OnContent = onContent;
+                var offContent = new TextBlock();
+                offContent.Text = "Disabled";
+                offContent.FontSize = 14;
+                toggleSwitch.OffContent = offContent;
+                pwmModeToggleSwitches.Add(pwmPins[i], toggleSwitch);
+
+                modeStack.Children.Add(toggleSwitch);
+                containerStack.Children.Add(modeStack);
 
                 //set up the value change slider
                 var slider = new Slider();
@@ -673,25 +769,29 @@ namespace remote_wiring_experience
                 slider.PointerReleased += OnPointerReleased_PwmSlider;
                 slider.Minimum = 0;
                 slider.Maximum = 255;
-                slider.Name = "slider_" + pwmPins[i];
+                slider.Name = "pwmslider_" + pwmPins[i];
                 slider.Width = 180;
+                slider.Height = 34;
+                slider.Margin = new Thickness(3, 0, 0, 0);
                 pwmSliders.Add(pwmPins[i], slider);
-                stack.Children.Add(slider);
+                containerStack.Children.Add(slider);
 
                 //set up the indication text
-                var text = new TextBox();
-                text.Name = "pwmtext_" + pwmPins[i];
-                text.HorizontalAlignment = HorizontalAlignment.Stretch;
-                text.VerticalAlignment = VerticalAlignment.Center;
-                text.Margin = new Thickness(10, 0, 0, 6);
-                text.Width = 40;
-                text.Visibility = Visibility.Collapsed;
-                text.TextChanged += OnTextChanged_PwmTextBox;
-                text.LostFocus += OnLostFocus_PwmTextBox;
-                pwmTextBoxes.Add(pwmPins[i], text);
-                stack.Children.Add(text);
+                var text3 = new TextBlock();
+                text3.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text3.VerticalAlignment = VerticalAlignment.Center;
+                text3.Margin = new Thickness(3, 0, 0, 0);
+                text2.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text3.Text = "Enable PWM to write values.";
+                text3.FontSize = 14;
+                text3.Name = "pwmtext_" + pwmPins[i];
+                text3.Visibility = Visibility.Visible;
+                //text3.TextChanged += OnTextChanged_PwmTextBox;
+                //text3.LostFocus += OnLostFocus_PwmTextBox;
+                pwmTextBlocks.Add(pwmPins[i], text3);
+                containerStack.Children.Add(text3);
 
-                AnalogPins.Children.Add(stack);
+                PWMPins.Children.Add(containerStack);
             }
         }
         
@@ -709,38 +809,53 @@ namespace remote_wiring_experience
         /// This function will determine which pin mode image should be applied for a given digital pin and apply it to the correct Image object
         /// </summary>
         /// <param name="pin">the pin number to be updated</param>
-        private void UpdateDigitalPinModeIndicator(byte pin)
+        private void UpdateDigitalPinIndicators(byte pin)
         {
             if (!digitalModeToggleSwitches.ContainsKey(pin)) return;
-
-            ImageSource image;
 
             //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
             if (pin == 0 || pin == 1)
             {
-                image = bitmaps["inuse_" + pin];
+                digitalModeToggleSwitches[pin].IsEnabled = false;
+                digitalStateToggleSwitches[pin].IsEnabled = false;
+                digitalStateToggleSwitches[pin].Visibility = Visibility.Collapsed;
+                digitalStateTextBlocks[pin].Visibility = Visibility.Visible;
             }
             else
                 switch (arduino.getPinMode(pin))
                 {
                     case PinMode.INPUT:
-                        image = bitmaps["input_" + pin];
+                        digitalModeToggleSwitches[pin].IsEnabled = true;
+                        navigated = true;
+                        digitalModeToggleSwitches[pin].IsOn = true;
+                        navigated = false;
+                        digitalStateToggleSwitches[pin].IsEnabled = true;
+                        digitalStateToggleSwitches[pin].Visibility = Visibility.Collapsed;
+                        digitalStateTextBlocks[pin].Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 0, 0));
+                        digitalStateTextBlocks[pin].Text = ((arduino.digitalRead(pin)) == PinState.HIGH) ? "5v" : "0v";
+                        digitalStateTextBlocks[pin].Visibility = Visibility.Visible;
                         break;
 
                     case PinMode.OUTPUT:
-                        image = bitmaps["output_" + pin];
+                        digitalModeToggleSwitches[pin].IsEnabled = true;
+                        digitalStateToggleSwitches[pin].IsEnabled = true;
+                        digitalStateToggleSwitches[pin].Visibility = Visibility.Visible;
+                        digitalStateTextBlocks[pin].Visibility = Visibility.Collapsed;
                         break;
 
                     default:
                     case PinMode.PWM:
-                        image = bitmaps["disabled_" + pin];
+                        digitalModeToggleSwitches[pin].IsEnabled = false;
+                        digitalStateToggleSwitches[pin].IsEnabled = false;
+                        digitalStateToggleSwitches[pin].Visibility = Visibility.Collapsed;
+                        digitalStateTextBlocks[pin].Text = "Disabled for PWM use.";
+                        digitalStateTextBlocks[pin].Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                        digitalStateTextBlocks[pin].Visibility = Visibility.Visible;
                         break;
                 }
-
-            //digitalModeToggleButtons[pin].Source = image;
         }
 
-        /// <summary>
+        /*/// <summary>
         /// This function will determine which indicator image should be applied for a given digital pin and apply it to the correct Image object
         /// </summary>
         /// <param name="pin">the pin number to be updated</param>
@@ -748,22 +863,18 @@ namespace remote_wiring_experience
         {
             if( !digitalStateToggleSwitches.ContainsKey( pin ) ) return;
 
-            ImageSource image;
-
             //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
             if( pin == 0 || pin == 1 )
             {
-                image = bitmaps["disabled"];
+                digitalStateToggleSwitches[pin].IsEnabled = false;
             }
             else
             {
-                if( arduino.getPinMode( pin ) == PinMode.PWM ) image = bitmaps["analog"];
-                else if( arduino.digitalRead( pin ) == PinState.HIGH ) image = bitmaps["high"];
-                else image = bitmaps["low"];
+                if (arduino.getPinMode(pin) == PinMode.PWM) digitalStateToggleSwitches[pin].IsEnabled = false;
+                else if (arduino.digitalRead(pin) == PinState.HIGH) digitalStateToggleSwitches[pin].IsOn = true;
+                else digitalStateToggleSwitches[pin].IsOn = false;
             }
-
-           // digitalStateSliders[pin].Source = image;
-        }
+        }*/
 
         /// <summary>
         /// This function will determine which pin mode image should be applied for a given analog pin and apply it to the correct Image object
@@ -773,34 +884,30 @@ namespace remote_wiring_experience
         {
             if( !analogModeToggleSwitches.ContainsKey( pin ) ) return;
 
-            ImageSource image;
             var analogPinNumber = ConvertAnalogPinToPinNumber( pin );
 
             if( isI2cEnabled && ( analogPinNumber == i2cPins[0] || analogPinNumber == i2cPins[1] ) )
             {
-                image = bitmaps["disabled_a" + pin];
+                analogSliders[pin].IsEnabled = false;
             }
             else
-                switch( arduino.getPinMode( analogPinNumber ) )
+                switch( arduino.getPinMode( "A" + pin ) )
                 {
                     case PinMode.ANALOG:
-                        image = bitmaps["input_a" + pin];
-                        analogSliders[pin].Visibility = Visibility.Visible;
+                        analogSliders[pin].Visibility = Visibility.Collapsed;
+                        analogTextBlocks[pin].Text = "" + arduino.analogRead("A" + pin);
                         break;
 
                     case PinMode.I2C:
-                        image = bitmaps["disabled_a" + pin];
                         analogSliders[pin].Visibility = Visibility.Collapsed;
                         break;
 
                     default:
-                        image = bitmaps["none_a" + pin];
-                        analogSliders[pin].Visibility = Visibility.Collapsed;
-                        analogTextBlocks[pin].Text = "Tap to enable.";
+                        analogSliders[pin].Visibility = Visibility.Visible;
+                        analogTextBlocks[pin].Text = "";
                         break;
                 }
 
-            //analogModeToggleSwitches[pin].Source = image;
         }
 
         /// <summary>
@@ -812,7 +919,7 @@ namespace remote_wiring_experience
         {
             if( arduino.getPinMode( "A" + pin ) != PinMode.ANALOG ) return;
             if( analogTextBlocks.ContainsKey( pin ) ) analogTextBlocks[pin].Text = Convert.ToString( value );
-            if( analogSliders.ContainsKey( pin ) ) analogSliders[pin].Value = value;
+            //if( analogSliders.ContainsKey( pin ) ) analogSliders[pin].Value = value;
         }
 
         /// <summary>
@@ -821,22 +928,20 @@ namespace remote_wiring_experience
         /// <param name="pin">the pin number to be updated</param>
         private void UpdatePwmPinModeIndicator( byte pin )
         {
-            if( !pwmModeImages.ContainsKey( pin ) ) return;
+            if( !pwmModeToggleSwitches.ContainsKey( pin ) ) return;
 
-            ImageSource image;
             switch( arduino.getPinMode( pin ) )
             {
                 case PinMode.PWM:
-                    image = bitmaps["pwm_" + pin];
+                    pwmSliders[pin].Visibility = Visibility.Visible;
+                    pwmTextBlocks[pin].Visibility = Visibility.Collapsed;
                     break;
 
                 default:
-                    image = bitmaps["disabled_" + pin];
                     pwmSliders[pin].Visibility = Visibility.Collapsed;
+                    pwmTextBlocks[pin].Visibility = Visibility.Visible;
                     break;
             }
-
-            pwmModeImages[pin].Source = image;
         }
 
         /// <summary>
@@ -938,6 +1043,19 @@ namespace remote_wiring_experience
         }
 
         /// <summary>
+        /// This function sends a single Analog telemetry event
+        /// </summary>
+        /// <param name="pin">the pin number to be reported</param>
+        /// <param name="value">the value of the pin</param>
+        private void SendAnalogTelemetryEvent(byte pin, double value)
+        {
+            var properties = new Dictionary<string, string>();
+            properties.Add("pin_number", pin.ToString());
+            properties.Add("analog_value", value.ToString());
+            App.Telemetry.TrackEvent("Analog_Slider_Value_Changed", properties);
+        }
+
+        /// <summary>
         /// This function sends a single PWM telemetry event
         /// </summary>
         /// <param name="pin">the pin number to be reported</param>
@@ -962,8 +1080,10 @@ namespace remote_wiring_experience
         /// <param name="e">Arguments relating to the event</param>
         private void ConnectionButton_Click(object sender, RoutedEventArgs e)
         {
-            DigitalScroll.Visibility = Visibility.Collapsed;
-            AnalogScroll.Visibility = Visibility.Visible;
+            lastPivotNavigationTime = DateTime.Now;
+            App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
+
+            this.Frame.Navigate(typeof(ConnectionPage));
         }
 
         /// <summary>
@@ -988,7 +1108,17 @@ namespace remote_wiring_experience
             PWMText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
             AboutText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
 
+            for (byte pin = 0; pin < numberOfDigitalPins; ++pin)
+            {
+                UpdateDigitalPinIndicators(pin);
+            }
+
             App.Telemetry.TrackPageView("Digital_Controls_Page");
+            lastPivotNavigationTime = DateTime.Now;
+
+            App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
+
+            currentPage = 0;
         }
 
         /// <summary>
@@ -1013,7 +1143,17 @@ namespace remote_wiring_experience
             PWMText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
             AboutText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
 
+            for (byte pin = 0; pin < numberOfAnalogPins; ++pin)
+            {
+                UpdateAnalogPinModeIndicator(pin);
+            }
+
             App.Telemetry.TrackPageView("Analog_Controls_Page");
+            lastPivotNavigationTime = DateTime.Now;
+
+            App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
+
+            currentPage = 1;
         }
 
         /// <summary>
@@ -1039,6 +1179,11 @@ namespace remote_wiring_experience
             AboutText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
 
             App.Telemetry.TrackPageView("PWM_Controls_Page");
+            lastPivotNavigationTime = DateTime.Now;
+
+            App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
+
+            currentPage = 2;
         }
 
         /// <summary>
@@ -1064,6 +1209,75 @@ namespace remote_wiring_experience
             AboutText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
 
             App.Telemetry.TrackPageView("About_Page");
+            lastPivotNavigationTime = DateTime.Now;
+
+            App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
+
+            currentPage = 3;
+        }
+
+        // <summary>
+        /// Called if the pointer hovers over the Connection button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void ConnectionButton_Enter(object sender, RoutedEventArgs e)
+        {
+            ConnectionRectangle.Visibility = Visibility.Visible;
+        }
+
+        // <summary>
+        /// Called if the pointer hovers over the Digital button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void DigitalButton_Enter(object sender, RoutedEventArgs e)
+        {
+            DigitalRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the Analog button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void AnalogButton_Enter(object sender, RoutedEventArgs e)
+        {
+            AnalogRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the PWM button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void PWMButton_Enter(object sender, RoutedEventArgs e)
+        {
+            PWMRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the About button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void AboutButton_Enter(object sender, RoutedEventArgs e)
+        {
+            AboutRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer exits the boundaries of any button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void Button_Exit(object sender, RoutedEventArgs e)
+        {
+            ConnectionRectangle.Visibility = Visibility.Collapsed;
+            DigitalRectangle.Visibility = (currentPage == 0) ? Visibility.Visible : Visibility.Collapsed;
+            AnalogRectangle.Visibility = (currentPage == 1) ? Visibility.Visible : Visibility.Collapsed;
+            PWMRectangle.Visibility = (currentPage == 2) ? Visibility.Visible : Visibility.Collapsed;
+            AboutRectangle.Visibility = (currentPage == 3) ? Visibility.Visible : Visibility.Collapsed;
         }
     }
 }

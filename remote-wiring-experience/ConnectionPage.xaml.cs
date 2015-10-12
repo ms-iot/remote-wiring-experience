@@ -30,6 +30,8 @@ namespace remote_wiring_experience
         BitmapImage wireBitmap;
         Image wire;
 
+        bool navigated = false;
+
         public ConnectionPage()
         {
             this.InitializeComponent();
@@ -39,6 +41,10 @@ namespace remote_wiring_experience
         protected override void OnNavigatedTo( NavigationEventArgs e )
         {
             base.OnNavigatedTo( e );
+
+            navigated = true;
+            Reset();
+            navigated = false;
 
             //telemetry
             App.Telemetry.TrackPageView( "Connection_Page" );
@@ -345,7 +351,7 @@ namespace remote_wiring_experience
 
         private void Reset()
         {
-            App.Telemetry.TrackRequest( "Connection_Cancelled_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
+            if (!navigated) { App.Telemetry.TrackRequest("Connection_Cancelled_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true); }
 
             if( App.Connection != null )
             {
@@ -364,6 +370,62 @@ namespace remote_wiring_experience
             cancelTokenSource = null;
 
             SetUiEnabled( true );
+        }
+
+        /****************************************************************
+         *                       Menu Bar Callbacks                     *
+         ****************************************************************/
+        /// <summary>
+        /// Called if the pointer hovers over the Digital button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void DigitalButton_Enter(object sender, RoutedEventArgs e)
+        {
+            DigitalRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the Analog button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void AnalogButton_Enter(object sender, RoutedEventArgs e)
+        {
+            AnalogRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the PWM button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void PWMButton_Enter(object sender, RoutedEventArgs e)
+        {
+            PWMRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the About button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void AboutButton_Enter(object sender, RoutedEventArgs e)
+        {
+            AboutRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer exits the boundaries of any button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void Button_Exit(object sender, RoutedEventArgs e)
+        {
+            DigitalRectangle.Visibility = Visibility.Collapsed;
+            AnalogRectangle.Visibility = Visibility.Collapsed;
+            PWMRectangle.Visibility = Visibility.Collapsed;
+            AboutRectangle.Visibility = Visibility.Collapsed;
         }
     }
 }

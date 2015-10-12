@@ -42,7 +42,7 @@ namespace remote_wiring_experience
         //these dictionaries store the loaded UI elements for easy access by pin number
         private Dictionary<byte, ToggleSwitch> digitalModeToggleSwitches;
         private Dictionary<byte, ToggleSwitch> digitalStateToggleSwitches;
-        private Dictionary<byte, Image> analogModeImages;
+        private Dictionary<byte, ToggleSwitch> analogModeToggleSwitches;
         private Dictionary<byte, Slider> analogSliders;
         private Dictionary<byte, TextBlock> analogTextBlocks;
         private Dictionary<byte, TextBox> pwmTextBoxes;
@@ -64,7 +64,7 @@ namespace remote_wiring_experience
             pwmSliders = new Dictionary<byte, Slider>();
             digitalModeToggleSwitches = new Dictionary<byte, ToggleSwitch>();
             digitalStateToggleSwitches = new Dictionary<byte, ToggleSwitch>();
-            analogModeImages = new Dictionary<byte, Image>();
+            analogModeToggleSwitches = new Dictionary<byte, ToggleSwitch>();
             analogTextBlocks = new Dictionary<byte, TextBlock>();
             pwmTextBoxes = new Dictionary<byte, TextBox>();
             pwmModeImages = new Dictionary<byte, Image>();
@@ -87,6 +87,9 @@ namespace remote_wiring_experience
             arduino = App.Arduino;
             arduino.DigitalPinUpdated += Arduino_OnDigitalPinUpdated;
             arduino.AnalogPinUpdated += Arduino_OnAnalogPinUpdated;
+
+            App.Telemetry.TrackPageView("Digital_Controls_Page");
+            lastPivotNavigationTime = DateTime.Now;
         }
 
 
@@ -204,7 +207,7 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="sender">the button being pressed</param>
         /// <param name="args">button press event args</param>
-        private void OnClick_AnalogModeToggleButton(object sender, RoutedEventArgs args)
+        private void OnClick_AnalogModeToggleSwitch(object sender, RoutedEventArgs args)
         {
             var button = sender as ToggleSwitch;
             var pin = GetPinFromButtonObject(button);
@@ -220,7 +223,7 @@ namespace remote_wiring_experience
             properties.Add("pin_number", pin.ToString());
             properties.Add("new_mode", nextMode.ToString());
             App.Telemetry.TrackEvent("Analog_Mode_Toggle_Button_Pressed", properties);
-            UpdateAnalogPinModeIndicator(pin);
+            //UpdateAnalogPinModeIndicator(pin);
         }
 
         /// <summary>
@@ -485,6 +488,7 @@ namespace remote_wiring_experience
                 toggleSwitch.Margin = new Thickness(5, 0, 5, 0);
                 toggleSwitch.Name = "digitalmode_" + i;
                 toggleSwitch.Toggled += OnClick_DigitalModeToggleSwitch;
+                if (i == 1 || i == 0) { toggleSwitch.IsEnabled = false; }
 
                 var onContent = new TextBlock();
                 onContent.Text = "Input";
@@ -492,6 +496,7 @@ namespace remote_wiring_experience
                 toggleSwitch.OnContent = onContent;
                 var offContent = new TextBlock();
                 offContent.Text = "Output";
+                if (i == 1 || i == 0) { offContent.Text = "Disabled"; }
                 offContent.FontSize = 14;
                 toggleSwitch.OffContent = offContent;
                 digitalModeToggleSwitches.Add(i, toggleSwitch);
@@ -511,6 +516,7 @@ namespace remote_wiring_experience
                 toggleSwitch2.Margin = new Thickness(1, 0, 5, 0);
                 toggleSwitch2.Name = "digitalstate_" + i;
                 toggleSwitch2.Toggled += OnClick_DigitalStateToggleSwitch;
+                if (i == 1 || i == 0) { toggleSwitch2.IsEnabled = false; }
 
                 var onContent2 = new TextBlock();
                 onContent2.Text = "5v";
@@ -518,6 +524,7 @@ namespace remote_wiring_experience
                 toggleSwitch2.OnContent = onContent2;
                 var offContent2 = new TextBlock();
                 offContent2.Text = "0v";
+                if (i == 1 || i == 0) { offContent2.Text = "Disabled"; }
                 offContent2.FontSize = 14;
                 toggleSwitch2.OffContent = offContent2;
                 digitalStateToggleSwitches.Add(i, toggleSwitch2);
@@ -538,25 +545,66 @@ namespace remote_wiring_experience
             //add controls and text fields for each analog pin the board supports
             for( byte i = 0; i < numberOfAnalogPins; ++i )
             {
-                var stack = new StackPanel();
-                stack.Orientation = Orientation.Horizontal;
-                stack.FlowDirection = FlowDirection.LeftToRight;
-                stack.HorizontalAlignment = HorizontalAlignment.Stretch;
-                stack.Margin = new Thickness(8, 0, 0, 0);
+                // Container stack to hold all pieces of new row of pins.
+                var containerStack = new StackPanel();
+                containerStack.Orientation = Orientation.Horizontal;
+                containerStack.FlowDirection = FlowDirection.LeftToRight;
+                containerStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+                containerStack.Margin = new Thickness(8, 0, 0, 20);
 
-                //set up the mode toggle button
-                var button = new Button();
-                var image = new Image();
-                image.Stretch = Stretch.Uniform;
-                analogModeImages.Add( i, image );
-                button.Content = image;
-                button.HorizontalAlignment = HorizontalAlignment.Center;
-                button.VerticalAlignment = VerticalAlignment.Center;
-                button.Padding = new Thickness();
-                button.Margin = new Thickness( 5, 0, 5, 0 );
-                button.Name = "analogmode_" + i;
-                button.Click += OnClick_AnalogModeToggleButton;
-                stack.Children.Add( button );
+                // Set up the pin text.
+                var textStack = new StackPanel();
+                textStack.Orientation = Orientation.Vertical;
+                textStack.FlowDirection = FlowDirection.LeftToRight;
+                textStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+
+                var text = new TextBlock();
+                text.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text.VerticalAlignment = VerticalAlignment.Center;
+                text.Margin = new Thickness(0, 0, 0, 0);
+                text.Text = "Pin A" + i;
+                text.FontSize = 14;
+                text.FontWeight = FontWeights.SemiBold;
+
+                var text2 = new TextBlock();
+                text2.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text2.VerticalAlignment = VerticalAlignment.Center;
+                text2.Margin = new Thickness(0, 0, 0, 0);
+                text2.Text = "Analog";
+                text2.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text2.FontSize = 14;
+                text2.FontWeight = FontWeights.SemiBold;
+
+                textStack.Children.Add(text);
+                textStack.Children.Add(text2);
+                containerStack.Children.Add(textStack);
+
+                // Set up the mode toggle button.
+                var modeStack = new StackPanel();
+                modeStack.Orientation = Orientation.Horizontal;
+                modeStack.FlowDirection = FlowDirection.LeftToRight;
+                modeStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+                modeStack.Margin = new Thickness(92, 0, 0, 0);
+
+                var toggleSwitch = new ToggleSwitch();
+                toggleSwitch.HorizontalAlignment = HorizontalAlignment.Left;
+                toggleSwitch.VerticalAlignment = VerticalAlignment.Center;
+                toggleSwitch.Margin = new Thickness(5, 0, 5, 0);
+                toggleSwitch.Name = "analogmode_" + i;
+                toggleSwitch.Toggled += OnClick_AnalogModeToggleSwitch;
+
+                var onContent = new TextBlock();
+                onContent.Text = "Input";
+                onContent.FontSize = 14;
+                toggleSwitch.OnContent = onContent;
+                var offContent = new TextBlock();
+                offContent.Text = "Output";
+                offContent.FontSize = 14;
+                toggleSwitch.OffContent = offContent;
+                analogModeToggleSwitches.Add(i, toggleSwitch);
+
+                modeStack.Children.Add(toggleSwitch);
+                containerStack.Children.Add(modeStack);
 
                 //set up the value change slider
                 var slider = new Slider();
@@ -570,18 +618,18 @@ namespace remote_wiring_experience
                 slider.Name = "slider_" + i;
                 slider.Width = 180;
                 analogSliders.Add( i, slider );
-                stack.Children.Add( slider );
+                containerStack.Children.Add( slider );
 
                 //set up the indication text
-                var text = new TextBlock();
-                text.HorizontalAlignment = HorizontalAlignment.Stretch;
-                text.VerticalAlignment = VerticalAlignment.Center;
-                text.Margin = new Thickness( 10, 0, 0, 6 );
-                text.Text = "Tap to enable.";
-                analogTextBlocks.Add( i, text );
-                stack.Children.Add( text );
+                var text3 = new TextBlock();
+                text3.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text3.VerticalAlignment = VerticalAlignment.Center;
+                text3.Margin = new Thickness( 10, 0, 0, 6 );
+                text3.Text = "Tap to enable.";
+                analogTextBlocks.Add( i, text3 );
+                containerStack.Children.Add( text3 );
 
-                AnalogPins.Children.Add( stack );
+                AnalogPins.Children.Add( containerStack );
             }
         }
 
@@ -723,7 +771,7 @@ namespace remote_wiring_experience
         /// <param name="pin">the pin number to be updated</param>
         private void UpdateAnalogPinModeIndicator( byte pin )
         {
-            if( !analogModeImages.ContainsKey( pin ) ) return;
+            if( !analogModeToggleSwitches.ContainsKey( pin ) ) return;
 
             ImageSource image;
             var analogPinNumber = ConvertAnalogPinToPinNumber( pin );
@@ -752,7 +800,7 @@ namespace remote_wiring_experience
                         break;
                 }
 
-            analogModeImages[pin].Source = image;
+            //analogModeToggleSwitches[pin].Source = image;
         }
 
         /// <summary>
@@ -905,7 +953,7 @@ namespace remote_wiring_experience
 
         //******************************************************************************
         //* Menu Button Click Events
-        //*
+        //******************************************************************************
 
         /// <summary>
         /// Called if the Analog button is pressed
@@ -927,12 +975,20 @@ namespace remote_wiring_experience
         {
             DigitalScroll.Visibility = Visibility.Visible;
             AnalogScroll.Visibility = Visibility.Collapsed;
+            PWMScroll.Visibility = Visibility.Collapsed;
+            AboutPanel.Visibility = Visibility.Collapsed;
 
             DigitalRectangle.Visibility = Visibility.Visible;
             AnalogRectangle.Visibility = Visibility.Collapsed;
+            PWMRectangle.Visibility = Visibility.Collapsed;
+            AboutRectangle.Visibility = Visibility.Collapsed;
 
             DigitalText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
             AnalogText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+            PWMText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+            AboutText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+
+            App.Telemetry.TrackPageView("Digital_Controls_Page");
         }
 
         /// <summary>
@@ -944,12 +1000,20 @@ namespace remote_wiring_experience
         {
             DigitalScroll.Visibility = Visibility.Collapsed;
             AnalogScroll.Visibility = Visibility.Visible;
+            PWMScroll.Visibility = Visibility.Collapsed;
+            AboutPanel.Visibility = Visibility.Collapsed;
 
             DigitalRectangle.Visibility = Visibility.Collapsed;
             AnalogRectangle.Visibility = Visibility.Visible;
+            PWMRectangle.Visibility = Visibility.Collapsed;
+            AboutRectangle.Visibility = Visibility.Collapsed;
 
             DigitalText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
             AnalogText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
+            PWMText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+            AboutText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+
+            App.Telemetry.TrackPageView("Analog_Controls_Page");
         }
 
         /// <summary>
@@ -960,7 +1024,21 @@ namespace remote_wiring_experience
         private void PWMButton_Click(object sender, RoutedEventArgs e)
         {
             DigitalScroll.Visibility = Visibility.Collapsed;
-            AnalogScroll.Visibility = Visibility.Visible;
+            AnalogScroll.Visibility = Visibility.Collapsed;
+            PWMScroll.Visibility = Visibility.Visible;
+            AboutPanel.Visibility = Visibility.Collapsed;
+
+            DigitalRectangle.Visibility = Visibility.Collapsed;
+            AnalogRectangle.Visibility = Visibility.Collapsed;
+            PWMRectangle.Visibility = Visibility.Visible;
+            AboutRectangle.Visibility = Visibility.Collapsed;
+
+            DigitalText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+            AnalogText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+            PWMText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
+            AboutText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+
+            App.Telemetry.TrackPageView("PWM_Controls_Page");
         }
 
         /// <summary>
@@ -971,7 +1049,21 @@ namespace remote_wiring_experience
         private void AboutButton_Click(object sender, RoutedEventArgs e)
         {
             DigitalScroll.Visibility = Visibility.Collapsed;
-            AnalogScroll.Visibility = Visibility.Visible;
+            AnalogScroll.Visibility = Visibility.Collapsed;
+            PWMScroll.Visibility = Visibility.Collapsed;
+            AboutPanel.Visibility = Visibility.Visible;
+
+            DigitalRectangle.Visibility = Visibility.Collapsed;
+            AnalogRectangle.Visibility = Visibility.Collapsed;
+            PWMRectangle.Visibility = Visibility.Collapsed;
+            AboutRectangle.Visibility = Visibility.Visible;
+
+            DigitalText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+            AnalogText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+            PWMText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
+            AboutText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
+
+            App.Telemetry.TrackPageView("About_Page");
         }
     }
 }

@@ -50,7 +50,7 @@ namespace remote_wiring_experience
         private RemoteDevice arduino;
 
         //telemetry-related items
-        DateTime lastPivotNavigationTime;
+        DateTime lastPageNavigationTime;
 
         private int currentPage = 0;
         private String[] pages = { "Digital", "Analog", "PWM", "About" };
@@ -89,7 +89,7 @@ namespace remote_wiring_experience
             }
 
             App.Telemetry.TrackPageView("Digital_Controls_Page");
-            lastPivotNavigationTime = DateTime.Now;
+            lastPageNavigationTime = DateTime.Now;
         }
 
 
@@ -884,167 +884,13 @@ namespace remote_wiring_experience
         //******************************************************************************
         //* Menu Button Click Events
         //******************************************************************************
-
-        /// <summary>
-        /// Called if the Analog button is pressed
-        /// </summary>
-        /// <param name="sender">The object invoking the event</param>
-        /// <param name="e">Arguments relating to the event</param>
-        private void ConnectionButton_Click(object sender, RoutedEventArgs e)
-        {
-            App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
-            lastPivotNavigationTime = DateTime.Now;
-
-            this.Frame.Navigate(typeof(ConnectionPage));
-        }
-
-        /// <summary>
-        /// Called if the Analog button is pressed
-        /// </summary>
-        /// <param name="sender">The object invoking the event</param>
-        /// <param name="e">Arguments relating to the event</param>
-        private void DigitalButton_Click(object sender, RoutedEventArgs e)
-        {
-            DigitalScroll.Visibility = Visibility.Visible;
-            AnalogScroll.Visibility = Visibility.Collapsed;
-            PWMScroll.Visibility = Visibility.Collapsed;
-            AboutPanel.Visibility = Visibility.Collapsed;
-
-            DigitalRectangle.Visibility = Visibility.Visible;
-            AnalogRectangle.Visibility = Visibility.Collapsed;
-            PWMRectangle.Visibility = Visibility.Collapsed;
-            AboutRectangle.Visibility = Visibility.Collapsed;
-
-            DigitalText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
-            AnalogText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-            PWMText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-            AboutText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-
-            for (byte pin = 0; pin < numberOfDigitalPins; ++pin)
-            {
-                navigated = true;
-                UpdateDigitalPinIndicators(pin);
-            }
-            navigated = false;
-
-            App.Telemetry.TrackPageView("Digital_Controls_Page");
-
-            App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
-
-            lastPivotNavigationTime = DateTime.Now;
-            
-            currentPage = 0;
-        }
-
-        /// <summary>
-        /// Called if the Analog button is pressed
-        /// </summary>
-        /// <param name="sender">The object invoking the event</param>
-        /// <param name="e">Arguments relating to the event</param>
-        private void AnalogButton_Click(object sender, RoutedEventArgs e)
-        {
-            DigitalScroll.Visibility = Visibility.Collapsed;
-            AnalogScroll.Visibility = Visibility.Visible;
-            PWMScroll.Visibility = Visibility.Collapsed;
-            AboutPanel.Visibility = Visibility.Collapsed;
-
-            DigitalRectangle.Visibility = Visibility.Collapsed;
-            AnalogRectangle.Visibility = Visibility.Visible;
-            PWMRectangle.Visibility = Visibility.Collapsed;
-            AboutRectangle.Visibility = Visibility.Collapsed;
-
-            DigitalText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-            AnalogText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
-            PWMText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-            AboutText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-
-            for (byte pin = 0; pin < numberOfAnalogPins; ++pin)
-            {
-                UpdateAnalogPinModeIndicator(pin);
-            }
-
-            App.Telemetry.TrackPageView("Analog_Controls_Page");
-
-            App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
-
-            lastPivotNavigationTime = DateTime.Now;
-            
-            currentPage = 1;
-        }
-
-        /// <summary>
-        /// Called if the Analog button is pressed
-        /// </summary>
-        /// <param name="sender">The object invoking the event</param>
-        /// <param name="e">Arguments relating to the event</param>
-        private void PWMButton_Click(object sender, RoutedEventArgs e)
-        {
-            DigitalScroll.Visibility = Visibility.Collapsed;
-            AnalogScroll.Visibility = Visibility.Collapsed;
-            PWMScroll.Visibility = Visibility.Visible;
-            AboutPanel.Visibility = Visibility.Collapsed;
-
-            DigitalRectangle.Visibility = Visibility.Collapsed;
-            AnalogRectangle.Visibility = Visibility.Collapsed;
-            PWMRectangle.Visibility = Visibility.Visible;
-            AboutRectangle.Visibility = Visibility.Collapsed;
-
-            DigitalText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-            AnalogText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-            PWMText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
-            AboutText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-
-            for (byte pin = 0; pin < numberOfAnalogPins; ++pin)
-            {
-                UpdatePwmPinModeIndicator(pin);
-            }
-
-            App.Telemetry.TrackPageView("PWM_Controls_Page");
-
-            App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
-
-            lastPivotNavigationTime = DateTime.Now;
-            
-            currentPage = 2;
-        }
-
-        /// <summary>
-        /// Called if the Analog button is pressed
-        /// </summary>
-        /// <param name="sender">The object invoking the event</param>
-        /// <param name="e">Arguments relating to the event</param>
-        private void AboutButton_Click(object sender, RoutedEventArgs e)
-        {
-            DigitalScroll.Visibility = Visibility.Collapsed;
-            AnalogScroll.Visibility = Visibility.Collapsed;
-            PWMScroll.Visibility = Visibility.Collapsed;
-            AboutPanel.Visibility = Visibility.Visible;
-
-            DigitalRectangle.Visibility = Visibility.Collapsed;
-            AnalogRectangle.Visibility = Visibility.Collapsed;
-            PWMRectangle.Visibility = Visibility.Collapsed;
-            AboutRectangle.Visibility = Visibility.Visible;
-
-            DigitalText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-            AnalogText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-            PWMText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
-            AboutText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
-
-            App.Telemetry.TrackPageView("About_Page");
-
-            App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
-
-            lastPivotNavigationTime = DateTime.Now;
-            
-            currentPage = 3;
-        }
-
+        
         /// <summary>
         /// Called if the pointer hovers over any of the menu buttons.
         /// </summary>
         /// <param name="sender">The object invoking the event</param>
         /// <param name="e">Arguments relating to the event</param>
-        private void MenuButton_Enter( object sender, RoutedEventArgs e)
+        private void MenuButton_Enter( object sender, RoutedEventArgs e )
         {
             var button = sender as Button;
             switch( button.Name )
@@ -1072,17 +918,133 @@ namespace remote_wiring_experience
         }
 
         /// <summary>
+        /// Called when a menu button is pressed
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void MenuButton_Click(object sender, RoutedEventArgs e)
+        {
+            var button = sender as Button;
+
+            ResetVisibility();
+
+            int nextPage = 0;
+            switch( button.Name )
+            {
+                case "ConnectButton":
+
+                    ConnectionRectangle.Visibility = Visibility.Visible;
+                    App.Telemetry.TrackMetric( "Page_" + pages[currentPage] + "_Time_Spent_In_Seconds", ( DateTime.Now - lastPageNavigationTime ).TotalSeconds );
+                    lastPageNavigationTime = DateTime.Now;
+
+                    this.Frame.Navigate( typeof( ConnectionPage ) );
+                    return;
+
+                case "DigitalButton":
+
+                    //update menu and page visibility
+                    DigitalText.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 14, 127, 217 ) );
+                    DigitalScroll.Visibility = Visibility.Visible;
+                    DigitalRectangle.Visibility = Visibility.Visible;
+
+                    //update digital indicators
+                    for( byte pin = 0; pin < numberOfDigitalPins; ++pin )
+                    {
+                        navigated = true;
+                        UpdateDigitalPinIndicators( pin );
+                    }
+
+                    App.Telemetry.TrackPageView( "Digital_Controls_Page" );
+                    nextPage = 0;
+
+                    break;
+
+                case "AnalogButton":
+
+                    //update menu and page visibility
+                    AnalogScroll.Visibility = Visibility.Visible;
+                    AnalogRectangle.Visibility = Visibility.Visible;
+                    AnalogText.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 14, 127, 217 ) );
+
+                    //update analog indicators
+                    for( byte pin = 0; pin < numberOfAnalogPins; ++pin )
+                    {
+                        UpdateAnalogPinModeIndicator( pin );
+                    }
+
+                    App.Telemetry.TrackPageView( "Analog_Controls_Page" );
+                    nextPage = 1;
+
+                    break;
+
+                case "PWMButton":
+
+                    //update menu and page visibility
+                    PWMScroll.Visibility = Visibility.Visible;
+                    PWMRectangle.Visibility = Visibility.Visible;
+                    PWMText.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 14, 127, 217 ) );
+
+                    //update PWM indicators
+                    for( byte pin = 0; pin < numberOfAnalogPins; ++pin )
+                    {
+                        UpdatePwmPinModeIndicator( pin );
+                    }
+
+                    App.Telemetry.TrackPageView( "PWM_Controls_Page" );
+                    nextPage = 2;
+
+                    break;
+
+                case "AboutButton":
+                    AboutPanel.Visibility = Visibility.Visible;
+                    AboutRectangle.Visibility = Visibility.Visible;
+                    AboutText.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 14, 127, 217 ) );
+
+                    App.Telemetry.TrackPageView( "About_Page" );
+                    nextPage = 3;
+                    break;
+            }
+
+            //track time spent on page navigated away from
+            navigated = false;
+            App.Telemetry.TrackMetric( "Page_" + pages[currentPage] + "_Time_Spent_In_Seconds", ( DateTime.Now - lastPageNavigationTime ).TotalSeconds );
+            lastPageNavigationTime = DateTime.Now;
+            currentPage = nextPage;
+        }
+
+        /// <summary>
         /// Called if the pointer exits the boundaries of any button.
         /// </summary>
         /// <param name="sender">The object invoking the event</param>
         /// <param name="e">Arguments relating to the event</param>
-        private void Button_Exit(object sender, RoutedEventArgs e)
+        private void MenuButton_Exit(object sender, RoutedEventArgs e)
         {
             ConnectionRectangle.Visibility = Visibility.Collapsed;
             DigitalRectangle.Visibility = (currentPage == 0) ? Visibility.Visible : Visibility.Collapsed;
             AnalogRectangle.Visibility = (currentPage == 1) ? Visibility.Visible : Visibility.Collapsed;
             PWMRectangle.Visibility = (currentPage == 2) ? Visibility.Visible : Visibility.Collapsed;
             AboutRectangle.Visibility = (currentPage == 3) ? Visibility.Visible : Visibility.Collapsed;
+        }
+
+        /// <summary>
+        /// Resets the view of the menu to show nothing selected with no highlights
+        /// </summary>
+        private void ResetVisibility()
+        {
+            DigitalScroll.Visibility = Visibility.Collapsed;
+            AnalogScroll.Visibility = Visibility.Collapsed;
+            PWMScroll.Visibility = Visibility.Collapsed;
+            AboutPanel.Visibility = Visibility.Collapsed;
+
+            DigitalRectangle.Visibility = Visibility.Collapsed;
+            AnalogRectangle.Visibility = Visibility.Collapsed;
+            PWMRectangle.Visibility = Visibility.Collapsed;
+            AboutRectangle.Visibility = Visibility.Collapsed;
+
+            DigitalText.Foreground = new SolidColorBrush( Windows.UI.Colors.Black );
+            AnalogText.Foreground = new SolidColorBrush( Windows.UI.Colors.Black );
+            PWMText.Foreground = new SolidColorBrush( Windows.UI.Colors.Black );
+            AboutText.Foreground = new SolidColorBrush( Windows.UI.Colors.Black );
         }
     }
 }

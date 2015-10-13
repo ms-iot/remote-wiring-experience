@@ -43,24 +43,24 @@
                                 <ColumnDefinition Width="84" />
                                 <ColumnDefinition Width="84" />
                             </Grid.ColumnDefinitions>
-                            <Button Grid.Column="0" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="ConnectionButton_Click" 
-                        Background="#E6E6E6" BorderThickness="0" PointerEntered="ConnectionButton_Enter" PointerExited="Button_Exit">
+                            <Button Name="ConnectButton" Grid.Column="0" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="ConnectionButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="MenuButton_Enter" PointerExited="MenuButton_Exit">
                                 <TextBlock x:Name="ConnectionText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">Connection</TextBlock>
                             </Button>
-                            <Button Grid.Column="1" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="DigitalButton_Click" 
-                        Background="#E6E6E6" BorderThickness="0" PointerEntered="DigitalButton_Enter" PointerExited="Button_Exit">
+                            <Button Name="DigitalButton" Grid.Column="1" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="DigitalButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="MenuButton_Enter" PointerExited="MenuButton_Exit">
                                 <TextBlock x:Name="DigitalText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12" Foreground="#0E7FD9">Digital</TextBlock>
                             </Button>
-                            <Button Grid.Column="2" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="AnalogButton_Click" 
-                        Background="#E6E6E6" BorderThickness="0" PointerEntered="AnalogButton_Enter" PointerExited="Button_Exit">
+                            <Button Name="AnalogButton" Grid.Column="2" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="AnalogButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="MenuButton_Enter" PointerExited="MenuButton_Exit">
                                 <TextBlock x:Name="AnalogText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">Analog</TextBlock>
                             </Button>
-                            <Button Grid.Column="3" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="PWMButton_Click" 
-                        Background="#E6E6E6" BorderThickness="0" PointerEntered="PWMButton_Enter" PointerExited="Button_Exit">
+                            <Button Name="PWMButton" Grid.Column="3" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="PWMButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="MenuButton_Enter" PointerExited="MenuButton_Exit">
                                 <TextBlock x:Name="PWMText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">PWM</TextBlock>
                             </Button>
-                            <Button Grid.Column="4" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="AboutButton_Click" 
-                        Background="#E6E6E6" BorderThickness="0" PointerEntered="AboutButton_Enter" PointerExited="Button_Exit">
+                            <Button Name="AboutButton" Grid.Column="4" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="AboutButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="MenuButton_Enter" PointerExited="MenuButton_Exit">
                                 <TextBlock x:Name="AboutText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">About</TextBlock>
                             </Button>
                         </Grid>

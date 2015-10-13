@@ -1040,53 +1040,35 @@ namespace remote_wiring_experience
         }
 
         /// <summary>
-        /// Called if the pointer hovers over the Connection button.
+        /// Called if the pointer hovers over any of the menu buttons.
         /// </summary>
         /// <param name="sender">The object invoking the event</param>
         /// <param name="e">Arguments relating to the event</param>
-        private void ConnectionButton_Enter(object sender, RoutedEventArgs e)
+        private void MenuButton_Enter( object sender, RoutedEventArgs e)
         {
-            ConnectionRectangle.Visibility = Visibility.Visible;
-        }
+            var button = sender as Button;
+            switch( button.Name )
+            {
+                case "ConnectButton":
+                    ConnectionRectangle.Visibility = Visibility.Visible;
+                    break;
 
-        /// <summary>
-        /// Called if the pointer hovers over the Digital button.
-        /// </summary>
-        /// <param name="sender">The object invoking the event</param>
-        /// <param name="e">Arguments relating to the event</param>
-        private void DigitalButton_Enter(object sender, RoutedEventArgs e)
-        {
-            DigitalRectangle.Visibility = Visibility.Visible;
-        }
+                case "DigitalButton":
+                    DigitalRectangle.Visibility = Visibility.Visible;
+                    break;
 
-        /// <summary>
-        /// Called if the pointer hovers over the Analog button.
-        /// </summary>
-        /// <param name="sender">The object invoking the event</param>
-        /// <param name="e">Arguments relating to the event</param>
-        private void AnalogButton_Enter(object sender, RoutedEventArgs e)
-        {
-            AnalogRectangle.Visibility = Visibility.Visible;
-        }
+                case "AnalogButton":
+                    AnalogRectangle.Visibility = Visibility.Visible;
+                    break;
 
-        /// <summary>
-        /// Called if the pointer hovers over the PWM button.
-        /// </summary>
-        /// <param name="sender">The object invoking the event</param>
-        /// <param name="e">Arguments relating to the event</param>
-        private void PWMButton_Enter(object sender, RoutedEventArgs e)
-        {
-            PWMRectangle.Visibility = Visibility.Visible;
-        }
+                case "PWMButton":
+                    PWMRectangle.Visibility = Visibility.Visible;
+                    break;
 
-        /// <summary>
-        /// Called if the pointer hovers over the About button.
-        /// </summary>
-        /// <param name="sender">The object invoking the event</param>
-        /// <param name="e">Arguments relating to the event</param>
-        private void AboutButton_Enter(object sender, RoutedEventArgs e)
-        {
-            AboutRectangle.Visibility = Visibility.Visible;
+                case "AboutButton":
+                    AboutRectangle.Visibility = Visibility.Visible;
+                    break;
+            }
         }
 
         /// <summary>

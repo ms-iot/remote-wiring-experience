@@ -931,8 +931,8 @@ namespace remote_wiring_experience
         /// <param name="e">Arguments relating to the event</param>
         private void ConnectionButton_Click(object sender, RoutedEventArgs e)
         {
-            lastPivotNavigationTime = DateTime.Now;
             App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
+            lastPivotNavigationTime = DateTime.Now;
 
             this.Frame.Navigate(typeof(ConnectionPage));
         }
@@ -967,10 +967,11 @@ namespace remote_wiring_experience
             navigated = false;
 
             App.Telemetry.TrackPageView("Digital_Controls_Page");
-            lastPivotNavigationTime = DateTime.Now;
 
             App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
 
+            lastPivotNavigationTime = DateTime.Now;
+            
             currentPage = 0;
         }
 
@@ -1002,10 +1003,11 @@ namespace remote_wiring_experience
             }
 
             App.Telemetry.TrackPageView("Analog_Controls_Page");
-            lastPivotNavigationTime = DateTime.Now;
 
             App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
 
+            lastPivotNavigationTime = DateTime.Now;
+            
             currentPage = 1;
         }
 
@@ -1037,10 +1039,11 @@ namespace remote_wiring_experience
             }
 
             App.Telemetry.TrackPageView("PWM_Controls_Page");
-            lastPivotNavigationTime = DateTime.Now;
 
             App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
 
+            lastPivotNavigationTime = DateTime.Now;
+            
             currentPage = 2;
         }
 
@@ -1067,10 +1070,11 @@ namespace remote_wiring_experience
             AboutText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
 
             App.Telemetry.TrackPageView("About_Page");
-            lastPivotNavigationTime = DateTime.Now;
 
             App.Telemetry.TrackMetric("Pivot_" + pages[currentPage] + "_Time_Spent_In_Seconds", (DateTime.Now - lastPivotNavigationTime).TotalSeconds);
 
+            lastPivotNavigationTime = DateTime.Now;
+            
             currentPage = 3;
         }
 

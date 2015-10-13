@@ -112,7 +112,7 @@
                     </StackPanel>
 
                     <TextBlock Grid.Row="4" Margin="34,4,0,0"
-                            x:Name="ConnectMessage" FontSize="14" Width="Auto" VerticalAlignment="Bottom"/>
+                            x:Name="ConnectMessage" FontSize="14" Width="Auto" VerticalAlignment="Bottom" TextWrapping="Wrap" />
 
                     <StackPanel Grid.Row="5" Margin="34, 28, 34, 0" Orientation="Horizontal" FlowDirection="RightToLeft" >
                         <Button x:Uid="Connect" Height="32"  Width="100" Margin="0, 0, 5, 0" x:Name="ConnectButton" Click="ConnectButton_Click" 

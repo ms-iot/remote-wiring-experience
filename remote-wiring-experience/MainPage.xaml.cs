@@ -246,34 +246,6 @@ namespace remote_wiring_experience
         }
 
         /// <summary>
-        /// Invoked when the slider value for a PWM pin is modified.
-        /// </summary>
-        /// <param name="sender">the slider being manipulated</param>
-        /// <param name="args">slider value changed event args</param>
-        private void OnValueChanged_AnalogSlider(object sender, RangeBaseValueChangedEventArgs args)
-        {
-            var slider = sender as Slider;
-            var pin = Convert.ToByte(slider.Name.Substring(slider.Name.IndexOf('_') + 1));
-
-            arduino.analogWrite(pin, (byte)args.NewValue);
-        }
-
-        /// <summary>
-        /// This function helps to process telemetry events when manipulation of a PWM slider is complete, 
-        /// rather than after each tick.
-        /// </summary>
-        /// <param name="sender">the slider which was released</param>
-        /// <param name="args">the slider release event args</param>
-        private void OnPointerReleased_AnalogSlider(object sender, PointerRoutedEventArgs args)
-        {
-            var slider = sender as Slider;
-            var pin = Convert.ToByte(slider.Name.Substring(slider.Name.IndexOf('_') + 1));
-
-            //telemetry
-            SendPwmTelemetryEvent(pin, slider.Value);
-        }
-
-        /// <summary>
         /// Invoked when the pwm mode toggle button is tapped or pressed
         /// </summary>
         /// <param name="sender">the button being pressed</param>
@@ -328,8 +300,10 @@ namespace remote_wiring_experience
             var slider = sender as Slider;
             var pin = Convert.ToByte( slider.Name.Substring( slider.Name.IndexOf( '_' ) + 1 ) );
 
-            //telemetry
-            SendPwmTelemetryEvent( pin, slider.Value );
+            var properties = new Dictionary<string, string>();
+            properties.Add( "pin_number", pin.ToString() );
+            properties.Add( "analog_value", slider.Value.ToString() );
+            App.Telemetry.TrackEvent( "Pwm_Slider_Value_Changed", properties );
         }
 
 
@@ -904,19 +878,6 @@ namespace remote_wiring_experience
             properties.Add("pin_number", pin.ToString());
             properties.Add("analog_value", value.ToString());
             App.Telemetry.TrackEvent("Analog_Slider_Value_Changed", properties);
-        }
-
-        /// <summary>
-        /// This function sends a single PWM telemetry event
-        /// </summary>
-        /// <param name="pin">the pin number to be reported</param>
-        /// <param name="value">the value of the pin</param>
-        private void SendPwmTelemetryEvent( byte pin, double value )
-        {
-            var properties = new Dictionary<string, string>();
-            properties.Add( "pin_number", pin.ToString() );
-            properties.Add( "analog_value", value.ToString() );
-            App.Telemetry.TrackEvent( "Pwm_Slider_Value_Changed", properties );
         }
 
 

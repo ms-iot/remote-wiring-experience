@@ -10,6 +10,7 @@ using Communication;
 using Microsoft.Maker.Serial;
 using Microsoft.Maker.RemoteWiring;
 using System.Collections.Generic;
+using System.Diagnostics;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Media;
 
@@ -23,7 +24,8 @@ namespace remote_wiring_experience
     public sealed partial class ConnectionPage : Page
     {
         DispatcherTimer timeout;
-        DateTime connectionAttemptStartedTime;
+        // stopwatch for tracking connection timing
+        Stopwatch connectionStopwatch = new Stopwatch();
         DateTime timePageNavigatedTo;
         CancellationTokenSource cancelTokenSource;
 
@@ -47,7 +49,6 @@ namespace remote_wiring_experience
             navigated = false;
 
             //telemetry
-            App.Telemetry.TrackPageView( "Connection_Page" );
             timePageNavigatedTo = DateTime.Now;
 
             // Load assets for wire icon
@@ -208,32 +209,26 @@ namespace remote_wiring_experience
 
             //determine the selected baud rate
             uint baudRate = Convert.ToUInt32( ( BaudRateComboBox.SelectedItem as string ) );
-
-            //connection properties dictionary, used only for telemetry data
-            var properties = new Dictionary<string, string>();
-
+            
             //use the selected device to create our communication object
             switch( ConnectionMethodComboBox.SelectedItem as string )
             {
                 default:
                 case "Bluetooth":
 
-                    //send telemetry about this connection attempt
-                    properties.Add( "Device_Name", device.Name );
-                    properties.Add( "Device_ID", device.Id );
-                    properties.Add( "Device_Kind", device.Kind.ToString() );
-                    App.Telemetry.TrackEvent( "Bluetooth_Connection_Attempt", properties );
+                    // populate telemetry properties about this connection attempt
+                    App.Telemetry.Context.Properties["connection.name"] = device.Name;
+                    App.Telemetry.Context.Properties["connection.detail"] = device.Id;
+                    
                     App.Connection = new BluetoothSerial( device );
                     break;
 
                 case "USB":
 
-                    //send telemetry about this connection attempt
-                    properties.Add( "Device_Name", device.Name );
-                    properties.Add( "Device_ID", device.Id );
-                    properties.Add( "Device_Kind", device.Kind.ToString() );
-                    App.Telemetry.TrackEvent( "USB_Connection_Attempt", properties );
-
+                    // populate telemetry properties about this connection attempt
+                    App.Telemetry.Context.Properties["connection.name"] = device.Name;
+                    App.Telemetry.Context.Properties["connection.detail"] = device.Id;
+                    
                     App.Connection = new UsbSerial( device );
                     break;
 
@@ -242,36 +237,36 @@ namespace remote_wiring_experience
                     string port = NetworkPortTextBox.Text;
                     ushort portnum = 0;
 
-                    if( host == null || port == null )
+                    if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
                     {
-                        ConnectMessage.Text = "You must enter host and IP.";
+                        ConnectMessage.Text = "You have entered an invalid host or IP.";
                         return;
                     }
 
-                    try
-                    {
-                        portnum = Convert.ToUInt16( port );
-                    }
-                    catch( FormatException )
+                    if (!ushort.TryParse(port, out portnum))
                     {
                         ConnectMessage.Text = "You have entered an invalid port number.";
                         return;
                     }
 
-                    //send telemetry about this connection attempt
-                    properties.Add( "host", host );
-                    properties.Add( "port", portnum.ToString() );
-                    App.Telemetry.TrackEvent( "Network_Connection_Attempt", properties );
-
+                    // populate telemetry properties about this connection attempt
+                    App.Telemetry.Context.Properties["connection.name"] = host;
+                    App.Telemetry.Context.Properties["connection.detail"] = string.Format("{0}:{1}", host, port);
                     App.Connection = new NetworkSerial( new Windows.Networking.HostName( host ), portnum );
                     break;
             }
+
+            App.Telemetry.Context.Properties["connection.type"] = App.Connection.GetType().Name;
+            App.Telemetry.Context.Properties["connection.state"] = "Connecting";
+            App.Telemetry.TrackEvent("Connection_Attempt");
 
             App.Arduino = new RemoteDevice( App.Connection );
             App.Arduino.DeviceReady += OnConnectionEstablished;
             App.Arduino.DeviceConnectionFailed += OnConnectionFailed;
 
-            connectionAttemptStartedTime = DateTime.Now;
+            connectionStopwatch.Reset();
+            connectionStopwatch.Start();
+
             App.Connection.begin( baudRate, SerialConfig.SERIAL_8N1 );
 
             //start a timer for connection timeout
@@ -291,11 +286,13 @@ namespace remote_wiring_experience
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
                 timeout.Stop();
+                ConnectMessage.Text = "Connection attempt failed: " + message;
 
                 //telemetry
-                App.Telemetry.TrackRequest( "Connection_Failed_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, message, true );
+                connectionStopwatch.Stop();
+                App.Telemetry.Context.Properties["connection.state"] = "Failed";
+                TrackConnectionEvent(ConnectMessage.Text, connectionStopwatch);
 
-                ConnectMessage.Text = "Connection attempt failed: " + message;
                 Reset();
             } ) );
         }
@@ -305,9 +302,12 @@ namespace remote_wiring_experience
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
                 timeout.Stop();
-                
+                ConnectMessage.Text = "Successfully connected!";
+
                 //telemetry
-                App.Telemetry.TrackRequest( "Connection_Success_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
+                connectionStopwatch.Stop();
+                App.Telemetry.Context.Properties["connection.state"] = "Connected";
+                TrackConnectionEvent(ConnectMessage.Text, connectionStopwatch);
                 App.Telemetry.TrackMetric( "Connection_Page_Time_Spent_In_Seconds", ( DateTime.Now - timePageNavigatedTo ).TotalSeconds );
 
                 this.Frame.Navigate( typeof( MainPage ) );
@@ -319,15 +319,32 @@ namespace remote_wiring_experience
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
                 timeout.Stop();
+                ConnectMessage.Text = "Connection attempt timed out.";
 
                 //telemetry
-                App.Telemetry.TrackRequest( "Connection_Timeout_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
-
-                ConnectMessage.Text = "Connection attempt timed out.";
+                App.Telemetry.Context.Properties["connection.state"] = "Timeout";
+                connectionStopwatch.Stop();
+                TrackConnectionEvent(ConnectMessage.Text, connectionStopwatch);
+                
                 Reset();
             } ) );
         }
 
+        /// <summary>
+        /// This function is invoked if a cancellation is invoked for any reason on the connection task
+        /// </summary>
+        private void OnConnectionCancelled()
+        {
+            timeout.Stop();
+            ConnectMessage.Text = "Connection attempt cancelled.";
+
+            //telemetry
+            App.Telemetry.Context.Properties["connection.state"] = "Cancelled";
+            connectionStopwatch.Stop();
+            TrackConnectionEvent(ConnectMessage.Text, connectionStopwatch);
+
+            Reset();
+        }
 
         /****************************************************************
          *                  Helper functions                            *
@@ -340,19 +357,8 @@ namespace remote_wiring_experience
             CancelButton.IsEnabled = !enabled;
         }
 
-        /// <summary>
-        /// This function is invoked if a cancellation is invoked for any reason on the connection task
-        /// </summary>
-        private void OnConnectionCancelled()
-        {
-            ConnectMessage.Text = "Connection attempt cancelled.";
-            Reset();
-        }
-
         private void Reset()
         {
-            if (!navigated) { App.Telemetry.TrackRequest("Connection_Cancelled_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true); }
-
             if( App.Connection != null )
             {
                 App.Connection.ConnectionEstablished -= OnConnectionEstablished;
@@ -371,6 +377,22 @@ namespace remote_wiring_experience
 
             SetUiEnabled( true );
         }
+
+        private void TrackConnectionEvent(string message, Stopwatch stopwatch)
+        {
+            var metrics = new Dictionary<string, double>
+                {
+                    {"connection.elapsed", stopwatch.Elapsed.TotalMilliseconds}
+                };
+
+            var telemetryProperties = new Dictionary<string, string>
+                {
+                    {"connection.message", message}
+                };
+
+            App.Telemetry.TrackEvent("Connection", telemetryProperties, metrics);
+        }
+
 
         /****************************************************************
          *                       Menu Bar Callbacks                     *

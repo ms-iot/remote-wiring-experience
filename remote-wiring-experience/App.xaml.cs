@@ -7,6 +7,7 @@ using Windows.UI.Xaml.Navigation;
 using Microsoft.Maker.RemoteWiring;
 using Microsoft.Maker.Serial;
 using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.Extensibility;
 
 namespace remote_wiring_experience
 {
@@ -39,9 +40,13 @@ namespace remote_wiring_experience
         /// </summary>
         public App()
         {
-            WindowsAppInitializer.InitializeAsync(
-                WindowsCollectors.Metadata |
-                WindowsCollectors.Session );
+            WindowsAppInitializer.InitializeAsync()
+                .ContinueWith(task =>
+                {
+                    TelemetryConfiguration.Active.TelemetryInitializers.Add(new UwpDeviceTelemetryInitializer());
+                })
+                .ContinueWith(task => { Telemetry = new TelemetryClient(); });
+
             this.InitializeComponent();
             this.Suspending += OnSuspending;
 
@@ -69,7 +74,7 @@ namespace remote_wiring_experience
             // just ensure that the window is active
             if (rootFrame == null)
             {
-                Telemetry.TrackEvent( "WRA_Experience_Launched_Event" );
+                Telemetry.TrackEvent( "Launch" );
 
                 // Create a Frame to act as the navigation context and navigate to the first page
                 rootFrame = new Frame();

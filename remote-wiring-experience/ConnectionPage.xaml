@@ -120,10 +120,10 @@
                         <ListBox Margin="0, 5, 0, 0" x:Name="ConnectionList" DisplayMemberPath="DisplayName" />
                     </StackPanel>
 
-                    <TextBlock Grid.Row="4" Margin="34,4,0,0"
+                    <TextBlock Grid.Row="4" Margin="34,4,34,0"
                             x:Name="ConnectMessage" FontSize="14" MaxWidth="430" Width="Auto" HorizontalAlignment="Left" TextAlignment="Left" VerticalAlignment="Bottom" TextWrapping="Wrap" />
 
-                    <StackPanel Grid.Row="5" Margin="34, 28, 34, 30" Orientation="Horizontal" FlowDirection="RightToLeft" >
+                    <StackPanel Grid.Row="5" Margin="34, 32, 34, 30" Orientation="Horizontal" FlowDirection="RightToLeft" >
                         <Button x:Uid="Connect" Height="32"  Width="100" Margin="0, 0, 5, 0" x:Name="ConnectButton" Click="ConnectButton_Click" 
                             Background="#0078D7" Foreground="White" FontSize="14">Connect</Button>
                         <Button x:Uid="RefreshBtn" Height="32" Width="100" Margin="0,0,5,0" x:Name="RefreshButton" Click="RefreshButton_Click" FontSize="14">Refresh</Button>

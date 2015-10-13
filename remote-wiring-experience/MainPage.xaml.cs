@@ -284,7 +284,14 @@ namespace remote_wiring_experience
             var pin = GetPinFromButtonObject(button);
 
             var mode = arduino.getPinMode(pin);
-            var nextMode = (mode == PinMode.PWM) ? PinMode.INPUT : PinMode.PWM;
+            var nextMode = (mode == PinMode.PWM) ? PinMode.OUTPUT : PinMode.PWM;
+
+            resetVoltage = true;
+            if (nextMode == PinMode.OUTPUT)
+            {
+                digitalStateToggleSwitches[pin].IsOn = false;
+            }
+            resetVoltage = false;
 
             //telemetry
             var properties = new Dictionary<string, string>();
@@ -325,106 +332,10 @@ namespace remote_wiring_experience
             SendPwmTelemetryEvent( pin, slider.Value );
         }
 
-        /*/// <summary>
-        /// Invoked when the text value for a PWM pin is modified
-        /// </summary>
-        /// <param name="sender">the slider being manipulated</param>
-        /// <param name="args">slider value changed event args</param>
-        private void OnTextChanged_PwmTextBox( object sender, TextChangedEventArgs e )
-        {
-            var textbox = sender as TextBox;
-            var pin = Convert.ToByte( textbox.Name.Substring( textbox.Name.IndexOf( '_' ) + 1 ) );
-
-            try
-            {
-                var newValue = Convert.ToInt32( textbox.Text );
-                if( newValue < byte.MinValue || newValue > byte.MaxValue ) throw new FormatException();
-                pwmSliders[pin].Value = newValue;
-                textbox.BorderBrush = new SolidColorBrush( Windows.UI.Color.FromArgb( 0, 0, 0, 0 ) );
-            }
-            catch( FormatException )
-            {
-                textbox.BorderBrush = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 255, 0, 0 ) );
-            }
-        }*/
-
-        /*/// <summary>
-        /// This function helps to process telemetry events when manipulation of a PWM text box is complete, 
-        /// rather than after each character is typed
-        /// </summary>
-        /// <param name="sender">the text box which was manipulated</param>
-        /// <param name="e">the lost focus event args</param>
-        private void OnLostFocus_PwmTextBox( object sender, RoutedEventArgs e )
-        {
-            var slider = sender as Slider;
-            var pin = Convert.ToByte( slider.Name.Substring( slider.Name.IndexOf( '_' ) + 1 ) );
-
-            //telemetry
-            SendPwmTelemetryEvent( pin, slider.Value );
-        }*/
-
 
         //******************************************************************************
         //* UI Support Functions
         //******************************************************************************
-
-        /// <summary>
-        /// This function loads all of the necessary bitmaps that will be used by this program into the resource dictionary
-        /// </summary>
-        /*private void LoadAssets()
-        {
-            bitmaps.Add( "high", new BitmapImage( new Uri( BaseUri, @"Assets/high.png" ) ) );
-            bitmaps.Add( "low", new BitmapImage( new Uri( BaseUri, @"Assets/low.png" ) ) );
-            bitmaps.Add( "analog", new BitmapImage( new Uri( BaseUri, @"Assets/analog.png" ) ) );
-            bitmaps.Add( "enabled", new BitmapImage( new Uri( BaseUri, @"Assets/enabled.png" ) ) );
-            bitmaps.Add( "disabled", new BitmapImage( new Uri( BaseUri, @"Assets/disabled.png" ) ) );
-            bitmaps.Add( "enablei2c", new BitmapImage( new Uri( BaseUri, @"Assets/enablei2c.png" ) ) );
-            bitmaps.Add( "inuse_0", new BitmapImage( new Uri( BaseUri, @"Assets/inuse_0.png" ) ) );
-            bitmaps.Add( "inuse_1", new BitmapImage( new Uri( BaseUri, @"Assets/inuse_1.png" ) ) );
-
-            for( int i = 0; i < numberOfAnalogPins; ++i )
-            {
-                bitmaps.Add( "none_a" + i, new BitmapImage( new Uri( BaseUri, @"Assets/none_a" + i + ".png" ) ) );
-                bitmaps.Add( "disabled_a" + i, new BitmapImage( new Uri( BaseUri, @"Assets/disabled_a" + i + ".png" ) ) );
-                bitmaps.Add( "input_a" + i, new BitmapImage( new Uri( BaseUri, @"Assets/input_a" + i + ".png" ) ) );
-            }
-
-            for( int i = 0; i < numberOfDigitalPins; ++i )
-            {
-                bitmaps.Add( "output_" + i, new BitmapImage( new Uri( BaseUri, @"Assets/output_" + i + ".png" ) ) );
-                bitmaps.Add( "disabled_" + i, new BitmapImage( new Uri( BaseUri, @"Assets/disabled_" + i + ".png" ) ) );
-                bitmaps.Add( "input_" + i, new BitmapImage( new Uri( BaseUri, @"Assets/input_" + i + ".png" ) ) );
-            }
-
-            for( int i = 0; i < numberOfPwmPins; ++i )
-            {
-                bitmaps.Add( "pwm_" + pwmPins[i], new BitmapImage( new Uri( BaseUri, @"Assets/pwm_" + pwmPins[i] + ".png" ) ) );
-            }
-        }*/
-
-
-        /// <summary>
-        /// This function is called when a page is loaded either by swipe navigation or clicking the tabs at the top
-        /// </summary>
-        /// <param name="sender">The pivot which is loading the item</param>
-        /// <param name="args">relative arguments, including the item that is being loaded</param>
-        /*private void Pivot_PivotItemLoaded( Pivot sender, PivotItemEventArgs args )
-        {
-            lastPivotNavigationTime = DateTime.Now;
-            switch( args.Item.Name )
-            {
-                case "Digital":
-                    App.Telemetry.TrackPageView( "Digital_Controls_Page" );
-                    UpdateDigitalControls();
-                    break;
-
-                case "Analog":
-                    App.Telemetry.TrackPageView( "Analog_Controls_Page" );
-                    UpdateAnalogControls();
-                    break;
-            }
-            uiControlsLoaded[args.Item.Name] = true;
-        }*/
 
         /// <summary>
         /// This function loads the content of each of the pin pages, as well as the About page.  The reason this is done dynamically here, instead of statically in the XAML, is to leave the code open
@@ -438,44 +349,6 @@ namespace remote_wiring_experience
             loadPWMControls();
         }
 
-        /// <summary>
-        /// This function is called when a pivot page is unloading either by swipe navigation to another page or clicking another tab at the top
-        /// </summary>
-        /// <param name="sender"></param>
-        /// <param name="args"></param>
-        /*private void Pivot_PivotItemUnloading( Pivot sender, PivotItemEventArgs args )
-        {
-            App.Telemetry.TrackMetric( "Pivot_" + sender.Name + "_Time_Spent_In_Seconds", ( DateTime.Now - lastPivotNavigationTime ).TotalSeconds );
-        }*/
-
-        /*/// <summary>
-        /// Updates the UI for the analog control page as necessary
-        /// </summary>
-        private void UpdateAnalogControls()
-        {
-            //if( !uiControlsLoaded["Analog"] ) loadAnalogControls();
-            for( byte pin = 0; pin < numberOfAnalogPins; ++pin )
-            {
-                UpdateAnalogPinModeIndicator( pin );
-            }
-
-            for( byte i = 0; i < numberOfPwmPins; ++i )
-            {
-                UpdatePwmPinModeIndicator( pwmPins[i] );
-            }
-        }*/
-
-        /*/// <summary>
-        /// Updates the UI for the digital control page as necessary
-        /// </summary>
-        private void UpdateDigitalControls()
-        {
-            //if( !uiControlsLoaded["Digital"] ) loadDigitalControls();
-            for( byte pin = 0; pin < numberOfDigitalPins; ++pin )
-            {
-                UpdateDigitalPinIndicators( pin );
-            }
-        }*/
 
         /// <summary>
         /// Adds the necessary digital controls to a StackPanel created for the Digital page.  This will only be called on navigation from the Connections page.
@@ -668,25 +541,6 @@ namespace remote_wiring_experience
                 modeStack.Children.Add(toggleSwitch);
                 containerStack.Children.Add(modeStack);
 
-                /*//set up the value change slider
-                var slider = new Slider();
-                slider.Orientation = Orientation.Horizontal;
-                slider.HorizontalAlignment = HorizontalAlignment.Stretch;
-                slider.VerticalAlignment = VerticalAlignment.Center;
-                slider.IsEnabled = true;
-                slider.TickFrequency = 128;
-                slider.SmallChange = 128;
-                slider.Minimum = 0;
-                slider.Maximum = 1023;
-                slider.Name = "slider_" + i;
-                slider.Width = 180;
-                slider.Height = 34;
-                slider.Margin = new Thickness(3, 0, 0, 0);
-                slider.ValueChanged += OnValueChanged_AnalogSlider;
-                slider.PointerReleased += OnPointerReleased_AnalogSlider;
-                analogSliders.Add( i, slider );
-                containerStack.Children.Add( slider );*/
-
                 //set up the indication text
                 var text3 = new TextBlock();
                 text3.HorizontalAlignment = HorizontalAlignment.Stretch;
@@ -802,8 +656,6 @@ namespace remote_wiring_experience
                 text3.FontSize = 14;
                 text3.Name = "pwmtext_" + pwmPins[i];
                 text3.Visibility = Visibility.Visible;
-                //text3.TextChanged += OnTextChanged_PwmTextBox;
-                //text3.LostFocus += OnLostFocus_PwmTextBox;
                 pwmTextBlocks.Add(pwmPins[i], text3);
                 containerStack.Children.Add(text3);
 
@@ -842,7 +694,6 @@ namespace remote_wiring_experience
                 {
                     case PinMode.INPUT:
                         digitalModeToggleSwitches[pin].IsEnabled = true;
-                        navigated = true;
                         digitalModeToggleSwitches[pin].IsOn = true;
                         navigated = false;
                         digitalStateToggleSwitches[pin].IsEnabled = true;
@@ -854,6 +705,9 @@ namespace remote_wiring_experience
 
                     case PinMode.OUTPUT:
                         digitalModeToggleSwitches[pin].IsEnabled = true;
+                        // Boolean used to ensure that when slider is toggled, all unwanted events do not occur.
+                        digitalModeToggleSwitches[pin].IsOn = false;
+                        navigated = false;
                         digitalStateToggleSwitches[pin].IsEnabled = true;
                         digitalStateToggleSwitches[pin].Visibility = Visibility.Visible;
                         digitalStateTextBlocks[pin].Visibility = Visibility.Collapsed;
@@ -870,27 +724,6 @@ namespace remote_wiring_experience
                         break;
                 }
         }
-
-        /*/// <summary>
-        /// This function will determine which indicator image should be applied for a given digital pin and apply it to the correct Image object
-        /// </summary>
-        /// <param name="pin">the pin number to be updated</param>
-        private void UpdateDigitalPinStateIndicator( byte pin )
-        {
-            if( !digitalStateToggleSwitches.ContainsKey( pin ) ) return;
-
-            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
-            if( pin == 0 || pin == 1 )
-            {
-                digitalStateToggleSwitches[pin].IsEnabled = false;
-            }
-            else
-            {
-                if (arduino.getPinMode(pin) == PinMode.PWM) digitalStateToggleSwitches[pin].IsEnabled = false;
-                else if (arduino.digitalRead(pin) == PinState.HIGH) digitalStateToggleSwitches[pin].IsOn = true;
-                else digitalStateToggleSwitches[pin].IsOn = false;
-            }
-        }*/
 
         /// <summary>
         /// This function will determine which pin mode image should be applied for a given analog pin and apply it to the correct Image object
@@ -1128,8 +961,10 @@ namespace remote_wiring_experience
 
             for (byte pin = 0; pin < numberOfDigitalPins; ++pin)
             {
+                navigated = true;
                 UpdateDigitalPinIndicators(pin);
             }
+            navigated = false;
 
             App.Telemetry.TrackPageView("Digital_Controls_Page");
             lastPivotNavigationTime = DateTime.Now;
@@ -1239,7 +1074,7 @@ namespace remote_wiring_experience
             currentPage = 3;
         }
 
-        // <summary>
+        /// <summary>
         /// Called if the pointer hovers over the Connection button.
         /// </summary>
         /// <param name="sender">The object invoking the event</param>
@@ -1249,7 +1084,7 @@ namespace remote_wiring_experience
             ConnectionRectangle.Visibility = Visibility.Visible;
         }
 
-        // <summary>
+        /// <summary>
         /// Called if the pointer hovers over the Digital button.
         /// </summary>
         /// <param name="sender">The object invoking the event</param>

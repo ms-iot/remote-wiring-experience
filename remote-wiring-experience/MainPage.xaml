@@ -23,61 +23,70 @@
 
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
-            <RowDefinition Height="3"/>
+            <RowDefinition Height="53"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0, 0, 0, 0" x:Name="MenuBar" Orientation="Vertical" Background="#E6E6E6">
-            <Grid Name="MenuBarOptions" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Height="50" Visibility="Visible">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="84" />
-                    <ColumnDefinition Width="84" />
-                    <ColumnDefinition Width="84" />
-                    <ColumnDefinition Width="84" />
-                    <ColumnDefinition Width="84" />
-                </Grid.ColumnDefinitions>
-                <Button Grid.Column="0" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="ConnectionButton_Click" 
-                    Background="#E6E6E6" BorderThickness="0" PointerEntered="ConnectionButton_Enter" PointerExited="Button_Exit">
-                    <TextBlock x:Name="ConnectionText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">Connection</TextBlock>
-                </Button>
-                <Button Grid.Column="1" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="DigitalButton_Click" 
-                    Background="#E6E6E6" BorderThickness="0" PointerEntered="DigitalButton_Enter" PointerExited="Button_Exit">
-                    <TextBlock x:Name="DigitalText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12" Foreground="#0E7FD9">Digital</TextBlock>
-                </Button>
-                <Button Grid.Column="2" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="AnalogButton_Click" 
-                    Background="#E6E6E6" BorderThickness="0" PointerEntered="AnalogButton_Enter" PointerExited="Button_Exit">
-                    <TextBlock x:Name="AnalogText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">Analog</TextBlock>
-                </Button>
-                <Button Grid.Column="3" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="PWMButton_Click" 
-                    Background="#E6E6E6" BorderThickness="0" PointerEntered="PWMButton_Enter" PointerExited="Button_Exit">
-                    <TextBlock x:Name="PWMText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">PWM</TextBlock>
-                </Button>
-                <Button Grid.Column="4" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="AboutButton_Click" 
-                    Background="#E6E6E6" BorderThickness="0" PointerEntered="AboutButton_Enter" PointerExited="Button_Exit">
-                    <TextBlock x:Name="AboutText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">About</TextBlock>
-                </Button>
-            </Grid>
-        </StackPanel>
+        <ScrollViewer x:Name="MenuScroll" Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="50"/>
+                        <RowDefinition Height="3"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Margin="0, 0, 0, 0" x:Name="MenuBar" Orientation="Vertical" Background="#E6E6E6">
+                        <Grid Name="MenuBarOptions" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Height="50" Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                            </Grid.ColumnDefinitions>
+                            <Button Grid.Column="0" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="ConnectionButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="ConnectionButton_Enter" PointerExited="Button_Exit">
+                                <TextBlock x:Name="ConnectionText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">Connection</TextBlock>
+                            </Button>
+                            <Button Grid.Column="1" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="DigitalButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="DigitalButton_Enter" PointerExited="Button_Exit">
+                                <TextBlock x:Name="DigitalText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12" Foreground="#0E7FD9">Digital</TextBlock>
+                            </Button>
+                            <Button Grid.Column="2" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="AnalogButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="AnalogButton_Enter" PointerExited="Button_Exit">
+                                <TextBlock x:Name="AnalogText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">Analog</TextBlock>
+                            </Button>
+                            <Button Grid.Column="3" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="PWMButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="PWMButton_Enter" PointerExited="Button_Exit">
+                                <TextBlock x:Name="PWMText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">PWM</TextBlock>
+                            </Button>
+                            <Button Grid.Column="4" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="AboutButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="AboutButton_Enter" PointerExited="Button_Exit">
+                                <TextBlock x:Name="AboutText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">About</TextBlock>
+                            </Button>
+                        </Grid>
+                    </StackPanel>
 
-        <StackPanel Grid.Row="1" Margin="0, 0, 0, 0" x:Name="HighlightBar" Orientation="Vertical" Background="#E6E6E6">
-            <Grid Name="HighlightBarOptions" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Height="2" Visibility="Visible">
-                <Grid.ColumnDefinitions>
-                    <ColumnDefinition Width="84" />
-                    <ColumnDefinition Width="84" />
-                    <ColumnDefinition Width="84" />
-                    <ColumnDefinition Width="84" />
-                    <ColumnDefinition Width="84" />
-                </Grid.ColumnDefinitions>
-                <Rectangle x:Name="ConnectionRectangle" Grid.Column="0" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
-                <Rectangle x:Name="DigitalRectangle" Grid.Column="1" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Visible"></Rectangle>
-                <Rectangle x:Name="AnalogRectangle" Grid.Column="2" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
-                <Rectangle x:Name="PWMRectangle" Grid.Column="3" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
-                <Rectangle x:Name="AboutRectangle" Grid.Column="4" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
-            </Grid>
-        </StackPanel>
+                    <StackPanel Grid.Row="1" Margin="0, 0, 0, 0" x:Name="HighlightBar" Orientation="Vertical" Background="#E6E6E6">
+                        <Grid Name="HighlightBarOptions" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Height="2" Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                            </Grid.ColumnDefinitions>
+                            <Rectangle x:Name="ConnectionRectangle" Grid.Column="0" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
+                            <Rectangle x:Name="DigitalRectangle" Grid.Column="1" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Visible"></Rectangle>
+                            <Rectangle x:Name="AnalogRectangle" Grid.Column="2" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
+                            <Rectangle x:Name="PWMRectangle" Grid.Column="3" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
+                            <Rectangle x:Name="AboutRectangle" Grid.Column="4" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
 
-        <ScrollViewer x:Name="DigitalScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="DigitalScroll" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -87,7 +96,7 @@
 
                 <StackPanel Grid.Row="0" x:Name="Description" Margin="30, 30, 0, 0">
                     <TextBlock HorizontalAlignment="Left" TextAlignment="Left" FontSize="32" FontWeight="ExtraLight" Margin="3, -5, 0, 0">Digital</TextBlock>
-                    <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Use the features 
+                    <TextBlock Width="Auto" MaxWidth="430" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Use the features 
                         on this page to control the digital pins on your Arduino board.  For more advanced Arduino boards, not all digital pins may appear.</TextBlock>
                 </StackPanel>
                 
@@ -102,7 +111,7 @@
             </Grid>
         </ScrollViewer>
 
-        <ScrollViewer x:Name="AnalogScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+        <ScrollViewer x:Name="AnalogScroll" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -112,7 +121,7 @@
 
                 <StackPanel Grid.Row="0" x:Name="AnalogDescription" Margin="30, 30, 0, 0">
                     <TextBlock HorizontalAlignment="Left" TextAlignment="Left" FontSize="32" FontWeight="ExtraLight" Margin="3, -5, 0, 0">Analog</TextBlock>
-                    <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Use the controls 
+                    <TextBlock Width="Auto" MaxWidth="430" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Use the controls 
                         on this page to measure the voltage readings of the analog pins on your Arduino board. For more advanced Arduino boards, not all analog pins may appear.</TextBlock>
                 </StackPanel>
 
@@ -127,7 +136,7 @@
             </Grid>
         </ScrollViewer>
 
-        <ScrollViewer x:Name="PWMScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+        <ScrollViewer x:Name="PWMScroll" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -137,7 +146,7 @@
 
                 <StackPanel Grid.Row="0" x:Name="PWMDescription" Margin="30, 30, 0, 0">
                     <TextBlock HorizontalAlignment="Left" TextAlignment="Left" FontSize="32" FontWeight="ExtraLight" Margin="3, -5, 0, 0">PWM</TextBlock>
-                    <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Use the features 
+                    <TextBlock Width="Auto" MaxWidth="430" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Use the features 
                         on this page to control the PWM functionality of the digital pins on your Arduino board. For more advanced Arduino boards, not all PWM pins may appear.</TextBlock>
                 </StackPanel>
 
@@ -152,7 +161,7 @@
             </Grid>
         </ScrollViewer>
 
-        <StackPanel x:Name="AboutPanel" Grid.Row="2" Visibility="Collapsed">
+        <ScrollViewer x:Name="AboutPanel" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
             <Grid>
                 <Grid.RowDefinitions>
                     <RowDefinition Height="Auto"/>
@@ -162,7 +171,7 @@
 
                 <StackPanel Grid.Row="0" x:Name="About1" Margin="30, 30, 0, 0">
                     <TextBlock HorizontalAlignment="Left" TextAlignment="Left" FontSize="32" FontWeight="ExtraLight" Margin="3, -5, 0, 0">About</TextBlock>
-                    <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">The Windows Remote 
+                    <TextBlock Width="Auto" MaxWidth="430" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">The Windows Remote 
                         Arduino Experience application allows users to control the GPIO, ADC, and PWM capabilities of an Arduino board from a Windows 10 device.  Setup is quick and easy – 
                         simply upload the StandardFirmata sketch (included with the Arduino IDE) to the board and start this application to begin controlling pins on their microcontroller.</TextBlock>
                 </StackPanel>
@@ -173,13 +182,13 @@
                         the pins that are included.</TextBlock>
                 </StackPanel>
 
-                <StackPanel Grid.Row="2" x:Name="About3" Margin="30, 8, 0, 0">
+                <StackPanel Grid.Row="2" x:Name="About3" Margin="30, 8, 0, 30">
                     <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">For additional questions, head over to 
                         WindowsOnDevices.com where you’ll find a beginner’s tutorial to help set up your Arduino and this program.  Once you’ve covered the basics, there are additional 
                         samples on the site to help you quickly start creating your own project.</TextBlock>
                 </StackPanel>
             </Grid>
-        </StackPanel>
+        </ScrollViewer>
     </Grid>
 
 </Page>

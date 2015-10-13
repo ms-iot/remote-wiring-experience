@@ -10,65 +10,74 @@
     
     <Grid>
         <Grid.RowDefinitions>
-            <RowDefinition Height="50"/>
-            <RowDefinition Height="3"/>
+            <RowDefinition Height="53"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
 
-        <StackPanel Grid.Row="0" Margin="0, 0, 0, 0" x:Name="MenuBar" Orientation="Vertical" Background="#E6E6E6">
-                <Grid Name="MenuBarOptions" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Height="50" Visibility="Visible">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="84" />
-                        <ColumnDefinition Width="84" />
-                        <ColumnDefinition Width="84" />
-                        <ColumnDefinition Width="84" />
-                        <ColumnDefinition Width="84" />
-                    </Grid.ColumnDefinitions>
-                    <TextBlock Grid.Column="0" x:Name="ConnectionText" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12" Foreground="#0E7FD9">Connection</TextBlock>
-                    <TextBlock Grid.Column="1" x:Name="DigitalText" PointerEntered="DigitalButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">Digital</TextBlock>
-                    <TextBlock Grid.Column="2" x:Name="AnalogText" PointerEntered="AnalogButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">Analog</TextBlock>
-                    <TextBlock Grid.Column="3" x:Name="PWMText" PointerEntered="PWMButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">PWM</TextBlock>
-                    <TextBlock Grid.Column="4" x:Name="AboutText" PointerEntered="AboutButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">About</TextBlock>
-                </Grid>
-        </StackPanel>
-
-        <StackPanel Grid.Row="1" Margin="0, 0, 0, 0" x:Name="HighlightBar" Orientation="Vertical" Background="#E6E6E6">
-                <Grid Name="HighlightBarOptions" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Height="2" Visibility="Visible">
-                    <Grid.ColumnDefinitions>
-                        <ColumnDefinition Width="84" />
-                        <ColumnDefinition Width="84" />
-                        <ColumnDefinition Width="84" />
-                        <ColumnDefinition Width="84" />
-                        <ColumnDefinition Width="84" />
-                    </Grid.ColumnDefinitions>
-                    <Rectangle x:Name="ConnectionRectangle" Grid.Column="0" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Visible"></Rectangle>
-                    <Rectangle x:Name="DigitalRectangle" Grid.Column="1" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
-                    <Rectangle x:Name="AnalogRectangle" Grid.Column="2" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
-                    <Rectangle x:Name="PWMRectangle" Grid.Column="3" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
-                    <Rectangle x:Name="AboutRectangle" Grid.Column="4" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
-                </Grid>
-        </StackPanel>
-
-        <ScrollViewer x:Name="ConnectionScroll" Grid.Row="2" VerticalScrollBarVisibility="Auto">
+        <ScrollViewer x:Name="MenuScroll" Grid.Row="0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <Grid>
                     <Grid.RowDefinitions>
-                        <RowDefinition Height="200"/>
-                        <RowDefinition Height="54"/>
+                        <RowDefinition Height="50"/>
+                        <RowDefinition Height="3"/>
+                    </Grid.RowDefinitions>
+                    <StackPanel Grid.Row="0" Margin="0, 0, 0, 0" x:Name="MenuBar" Orientation="Vertical" Background="#E6E6E6">
+                        <Grid Name="MenuBarOptions" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Height="50" Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" x:Name="ConnectionText" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12" Foreground="#0E7FD9">Connection</TextBlock>
+                            <TextBlock Grid.Column="1" x:Name="DigitalText" PointerEntered="DigitalButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">Digital</TextBlock>
+                            <TextBlock Grid.Column="2" x:Name="AnalogText" PointerEntered="AnalogButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">Analog</TextBlock>
+                            <TextBlock Grid.Column="3" x:Name="PWMText" PointerEntered="PWMButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">PWM</TextBlock>
+                            <TextBlock Grid.Column="4" x:Name="AboutText" PointerEntered="AboutButton_Enter" PointerExited="Button_Exit" HorizontalAlignment="Stretch" TextAlignment="Center" Padding="0, 16, 0, 0" FontSize="12">About</TextBlock>
+                        </Grid>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="1" Margin="0, 0, 0, 0" x:Name="HighlightBar" Orientation="Vertical" Background="#E6E6E6">
+                        <Grid Name="HighlightBarOptions" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" Height="2" Visibility="Visible">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
+                            </Grid.ColumnDefinitions>
+                            <Rectangle x:Name="ConnectionRectangle" Grid.Column="0" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Visible"></Rectangle>
+                            <Rectangle x:Name="DigitalRectangle" Grid.Column="1" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
+                            <Rectangle x:Name="AnalogRectangle" Grid.Column="2" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
+                            <Rectangle x:Name="PWMRectangle" Grid.Column="3" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
+                            <Rectangle x:Name="AboutRectangle" Grid.Column="4" HorizontalAlignment="Stretch" Fill="#CCCCCC" Visibility="Collapsed"></Rectangle>
+                        </Grid>
+                    </StackPanel>
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+
+        <ScrollViewer x:Name="ConnectionScroll" Grid.Row="1" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="84"/>
                         <RowDefinition Height="75"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
-                        <RowDefinition Height="60"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
-                    <StackPanel Grid.Row="0" x:Name="Description" Margin="30, 30, 0, 0">
+                    <StackPanel Grid.Row="0" x:Name="Description" Margin="30, 30, 34, 0">
                         <StackPanel x:Name="WireStack" Width="40" Height="40" HorizontalAlignment="Left" FlowDirection="LeftToRight"></StackPanel>
-                        <TextBlock HorizontalAlignment="Left" TextAlignment="Left" FontSize="32" FontWeight="ExtraLight" Margin="3, -5, 0, 0">Let's connect an Arduino</TextBlock>
-                        <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Connect an Arduino board to this device using the
+                        <TextBlock HorizontalAlignment="Left" TextAlignment="Left" FontSize="32" FontWeight="ExtraLight" TextWrapping="Wrap"  Margin="3, -5, 0, 0">Let's connect an Arduino</TextBlock>
+                        <TextBlock Width="Auto" MaxWidth="430" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Connect an Arduino board to this device using the
                         tools below. Choose your preferred connection method. If your Arduino is properly configured, your board should appear on this page.</TextBlock>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="1" Margin="30,-5,0,0" x:Name="ConnectSelection" Orientation="Vertical">
+                    <StackPanel Grid.Row="1" Margin="30,25,0,0" x:Name="ConnectSelection" Orientation="Vertical">
                         <StackPanel Margin="4, 0, 0, 0" Orientation="Horizontal" HorizontalAlignment="Stretch">
                             <StackPanel Margin="0,0,20,0" Orientation="Vertical" HorizontalAlignment="Stretch">
                                 <TextBlock FontSize="14" Text="Connection" />
@@ -106,15 +115,15 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="3" Margin="34,6,34,0" x:Name="ConnectStackParent" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                    <StackPanel Grid.Row="3" Margin="34,10,34,0" x:Name="ConnectStackParent" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                         <TextBlock x:Name="DevicesText" FontWeight="SemiBold" FontSize="14">Devices discovered</TextBlock>
                         <ListBox Margin="0, 5, 0, 0" x:Name="ConnectionList" DisplayMemberPath="DisplayName" />
                     </StackPanel>
 
                     <TextBlock Grid.Row="4" Margin="34,4,0,0"
-                            x:Name="ConnectMessage" FontSize="14" Width="Auto" VerticalAlignment="Bottom" TextWrapping="Wrap" />
+                            x:Name="ConnectMessage" FontSize="14" MaxWidth="430" Width="Auto" HorizontalAlignment="Left" TextAlignment="Left" VerticalAlignment="Bottom" TextWrapping="Wrap" />
 
-                    <StackPanel Grid.Row="5" Margin="34, 28, 34, 0" Orientation="Horizontal" FlowDirection="RightToLeft" >
+                    <StackPanel Grid.Row="5" Margin="34, 28, 34, 30" Orientation="Horizontal" FlowDirection="RightToLeft" >
                         <Button x:Uid="Connect" Height="32"  Width="100" Margin="0, 0, 5, 0" x:Name="ConnectButton" Click="ConnectButton_Click" 
                             Background="#0078D7" Foreground="White" FontSize="14">Connect</Button>
                         <Button x:Uid="RefreshBtn" Height="32" Width="100" Margin="0,0,5,0" x:Name="RefreshButton" Click="RefreshButton_Click" FontSize="14">Refresh</Button>

@@ -8,7 +8,7 @@
     <OutputType>AppContainerExe</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
     <RootNamespace>remote_wiring_experience</RootNamespace>
-    <AssemblyName>remote-wiring-experience</AssemblyName>
+    <AssemblyName>Windows Remote Arduino Experience</AssemblyName>
     <DefaultLanguage>en-US</DefaultLanguage>
     <TargetPlatformIdentifier>UAP</TargetPlatformIdentifier>
     <TargetPlatformVersion>10.0.10240.0</TargetPlatformVersion>
@@ -17,8 +17,12 @@
     <EnableDotNetNativeCompatibleProfile>true</EnableDotNetNativeCompatibleProfile>
     <FileAlignment>512</FileAlignment>
     <ProjectTypeGuids>{A5A43C5B-DE2A-4C0C-9213-0A381AF9435A};{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}</ProjectTypeGuids>
-    <PackageCertificateKeyFile>remote-wiring-experience_TemporaryKey.pfx</PackageCertificateKeyFile>
-    <ApplicationInsightsResourceId>/subscriptions/3028579c-d25b-4ab8-87fc-455abc9bb7fb/resourcegroups/AppInsights-MakerProjects/providers/microsoft.insights/components/remote-wiring-experience-public</ApplicationInsightsResourceId>
+    <ApplicationInsightsResourceId>/subscriptions/0445ef8f-446e-4cbe-9c04-a74b90c9eb32/resourcegroups/Group-1/providers/microsoft.insights/components/Remote Arduino Experience - Public</ApplicationInsightsResourceId>
+    <PackageCertificateKeyFile>remote-wiring-experience_StoreKey.pfx</PackageCertificateKeyFile>
+    <PackageCertificateThumbprint>8449BB3185806C0C8D48816BF24428D3CF6C58C6</PackageCertificateThumbprint>
+    <AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
+    <AppxBundlePlatforms>x86|x64|arm</AppxBundlePlatforms>
+    <AppxBundle>Always</AppxBundle>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Debug|ARM'">
     <DebugSymbols>true</DebugSymbols>
@@ -95,6 +99,7 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <None Include="project.json" />
+    <None Include="remote-wiring-experience_StoreKey.pfx" />
     <None Include="Service References\Application Insights\ConnectedService.json" />
   </ItemGroup>
   <ItemGroup>
@@ -106,9 +111,6 @@
     <Compile Include="ConnectionPage.xaml.cs">
       <DependentUpon>ConnectionPage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="Function.cs" />
-    <Compile Include="FunctionElement.cs" />
-    <Compile Include="FunctionPanel.cs" />
     <Compile Include="MainPage.xaml.cs">
       <DependentUpon>MainPage.xaml</DependentUpon>
     </Compile>
@@ -121,86 +123,27 @@
     <None Include="remote-wiring-experience_TemporaryKey.pfx" />
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Assets\analog.png" />
-    <Content Include="Assets\disabled_0.png" />
-    <Content Include="Assets\disabled_1.png" />
-    <Content Include="Assets\disabled_10.png" />
-    <Content Include="Assets\disabled_11.png" />
-    <Content Include="Assets\disabled_12.png" />
-    <Content Include="Assets\disabled_13.png" />
-    <Content Include="Assets\disabled_2.png" />
-    <Content Include="Assets\disabled_3.png" />
-    <Content Include="Assets\disabled_4.png" />
-    <Content Include="Assets\disabled_5.png" />
-    <Content Include="Assets\disabled_6.png" />
-    <Content Include="Assets\disabled_7.png" />
-    <Content Include="Assets\disabled_8.png" />
-    <Content Include="Assets\disabled_9.png" />
-    <Content Include="Assets\disabled_a0.png" />
-    <Content Include="Assets\disabled_a1.png" />
-    <Content Include="Assets\disabled_a2.png" />
-    <Content Include="Assets\disabled_a3.png" />
-    <Content Include="Assets\disabled_a4.png" />
-    <Content Include="Assets\disabled_a5.png" />
-    <Content Include="Assets\enabled.png" />
-    <Content Include="Assets\enablei2c.png" />
-    <Content Include="Assets\high.png" />
-    <Content Include="Assets\input_0.png" />
-    <Content Include="Assets\input_1.png" />
-    <Content Include="Assets\input_10.png" />
-    <Content Include="Assets\input_11.png" />
-    <Content Include="Assets\input_12.png" />
-    <Content Include="Assets\input_13.png" />
-    <Content Include="Assets\input_2.png" />
-    <Content Include="Assets\input_3.png" />
-    <Content Include="Assets\input_4.png" />
-    <Content Include="Assets\input_5.png" />
-    <Content Include="Assets\input_6.png" />
-    <Content Include="Assets\input_7.png" />
-    <Content Include="Assets\input_8.png" />
-    <Content Include="Assets\input_9.png" />
-    <Content Include="Assets\input_a0.png" />
-    <Content Include="Assets\input_a1.png" />
-    <Content Include="Assets\input_a2.png" />
-    <Content Include="Assets\input_a3.png" />
-    <Content Include="Assets\input_a4.png" />
-    <Content Include="Assets\input_a5.png" />
-    <Content Include="Assets\low.png" />
-    <Content Include="Assets\none_a0.png" />
-    <Content Include="Assets\none_a1.png" />
-    <Content Include="Assets\none_a2.png" />
-    <Content Include="Assets\none_a3.png" />
-    <Content Include="Assets\none_a4.png" />
-    <Content Include="Assets\none_a5.png" />
-    <Content Include="Assets\output_0.png" />
-    <Content Include="Assets\output_1.png" />
-    <Content Include="Assets\output_10.png" />
-    <Content Include="Assets\output_11.png" />
-    <Content Include="Assets\output_12.png" />
-    <Content Include="Assets\output_13.png" />
-    <Content Include="Assets\output_2.png" />
-    <Content Include="Assets\output_3.png" />
-    <Content Include="Assets\output_4.png" />
-    <Content Include="Assets\output_5.png" />
-    <Content Include="Assets\output_6.png" />
-    <Content Include="Assets\output_7.png" />
-    <Content Include="Assets\output_8.png" />
-    <Content Include="Assets\output_9.png" />
-    <Content Include="Assets\plus.png" />
-    <Content Include="Assets\pwm_10.png" />
-    <Content Include="Assets\pwm_11.png" />
-    <Content Include="Assets\pwm_13.png" />
-    <Content Include="Assets\pwm_3.png" />
-    <Content Include="Assets\pwm_5.png" />
-    <Content Include="Assets\pwm_6.png" />
-    <Content Include="Assets\pwm_9.png" />
+    <Content Include="Assets\BadgeLogo.scale-200.png" />
+    <None Include="Package.StoreAssociation.xml" />
+    <Content Include="Assets\SplashScreen.scale-100.png" />
+    <Content Include="Assets\Square150x150Logo.scale-100.png" />
+    <Content Include="Assets\Square150x150Logo.scale-400.png" />
+    <Content Include="Assets\Square310x310Logo.scale-100.png" />
+    <Content Include="Assets\Square310x310Logo.scale-200.png" />
+    <Content Include="Assets\Square44x44Logo.scale-100.png" />
+    <Content Include="Assets\Square44x44Logo.targetsize-48.png" />
+    <Content Include="Assets\Square71x71Logo.scale-100.png" />
+    <Content Include="Assets\Square71x71Logo.scale-200.png" />
+    <Content Include="Assets\Square71x71Logo.scale-400.png" />
+    <Content Include="Assets\StoreLogo.scale-100.png" />
+    <Content Include="Assets\StoreLogo.scale-200.png" />
+    <Content Include="Assets\Wide310x150Logo.scale-100.png" />
+    <Content Include="Assets\wire.png" />
     <Content Include="Properties\Default.rd.xml" />
-    <Content Include="Assets\LockScreenLogo.scale-200.png" />
     <Content Include="Assets\SplashScreen.scale-200.png" />
     <Content Include="Assets\Square150x150Logo.scale-200.png" />
     <Content Include="Assets\Square44x44Logo.scale-200.png" />
     <Content Include="Assets\Square44x44Logo.targetsize-24_altform-unplated.png" />
-    <Content Include="Assets\StoreLogo.png" />
     <Content Include="Assets\Wide310x150Logo.scale-200.png" />
   </ItemGroup>
   <ItemGroup>
@@ -218,6 +161,9 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
+    <WCFMetadata Include="Service References\" />
+  </ItemGroup>
+  <ItemGroup>
     <ProjectReference Include="..\remote-wiring\Microsoft.Maker.win10\Microsoft.Maker.Firmata\Microsoft.Maker.Firmata.vcxproj">
       <Project>{f0a53bc9-c617-47dd-8b68-f91e3502d633}</Project>
       <Name>Microsoft.Maker.Firmata</Name>
@@ -230,9 +176,6 @@
       <Project>{8376216c-282a-4927-b9ef-c2d545fe0bca}</Project>
       <Name>Microsoft.Maker.Serial</Name>
     </ProjectReference>
-  </ItemGroup>
-  <ItemGroup>
-    <WCFMetadata Include="Service References\" />
   </ItemGroup>
   <PropertyGroup Condition=" '$(VisualStudioVersion)' == '' or '$(VisualStudioVersion)' &lt; '14.0' ">
     <VisualStudioVersion>14.0</VisualStudioVersion>

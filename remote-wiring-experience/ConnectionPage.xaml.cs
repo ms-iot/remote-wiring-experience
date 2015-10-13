@@ -10,6 +10,8 @@ using Communication;
 using Microsoft.Maker.Serial;
 using Microsoft.Maker.RemoteWiring;
 using System.Collections.Generic;
+using Windows.UI.Xaml.Media.Imaging;
+using Windows.UI.Xaml.Media;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -25,6 +27,11 @@ namespace remote_wiring_experience
         DateTime timePageNavigatedTo;
         CancellationTokenSource cancelTokenSource;
 
+        BitmapImage wireBitmap;
+        Image wire;
+
+        bool navigated = false;
+
         public ConnectionPage()
         {
             this.InitializeComponent();
@@ -35,11 +42,22 @@ namespace remote_wiring_experience
         {
             base.OnNavigatedTo( e );
 
+            navigated = true;
+            Reset();
+            navigated = false;
+
             //telemetry
             App.Telemetry.TrackPageView( "Connection_Page" );
             timePageNavigatedTo = DateTime.Now;
 
-            if( ConnectionList.ItemsSource == null )
+            // Load assets for wire icon
+            wireBitmap = new BitmapImage(new Uri(BaseUri, @"Assets/wire.png"));
+            wire = new Image();
+            wire.Stretch = Stretch.Uniform;
+            wire.Source = wireBitmap;
+            WireStack.Children.Add(wire);
+
+            if ( ConnectionList.ItemsSource == null )
             {
                 ConnectMessage.Text = "Select an item to connect to.";
                 RefreshDeviceList();
@@ -61,7 +79,11 @@ namespace remote_wiring_experience
                 default:
                 case "Bluetooth":
                     ConnectionList.Visibility = Visibility.Visible;
-                    NetworkConnectionGrid.Visibility = Visibility.Collapsed;
+                    DevicesText.Visibility = Visibility.Visible;
+                    NetworkHostNameTextBox.IsEnabled = false;
+                    NetworkPortTextBox.IsEnabled = false;
+                    NetworkHostNameTextBox.Text = "";
+                    NetworkPortTextBox.Text = "";
 
                     //create a cancellation token which can be used to cancel a task
                     cancelTokenSource = new CancellationTokenSource();
@@ -72,7 +94,11 @@ namespace remote_wiring_experience
 
                 case "USB":
                     ConnectionList.Visibility = Visibility.Visible;
-                    NetworkConnectionGrid.Visibility = Visibility.Collapsed;
+                    DevicesText.Visibility = Visibility.Visible;
+                    NetworkHostNameTextBox.IsEnabled = false;
+                    NetworkPortTextBox.IsEnabled = false;
+                    NetworkHostNameTextBox.Text = "";
+                    NetworkPortTextBox.Text = "";
 
                     //create a cancellation token which can be used to cancel a task
                     cancelTokenSource = new CancellationTokenSource();
@@ -83,8 +109,10 @@ namespace remote_wiring_experience
 
                 case "Network":
                     ConnectionList.Visibility = Visibility.Collapsed;
-                    NetworkConnectionGrid.Visibility = Visibility.Visible;
-                    ConnectMessage.Text = "Enter a host and port to connect";
+                    DevicesText.Visibility = Visibility.Collapsed;
+                    NetworkHostNameTextBox.IsEnabled = true;
+                    NetworkPortTextBox.IsEnabled = true;
+                    ConnectMessage.Text = "Enter a host and port to connect.";
                     task = null;
                     break;
             }
@@ -103,6 +131,7 @@ namespace remote_wiring_experience
                         if( result == null || result.Count == 0 )
                         {
                             ConnectMessage.Text = "No items found.";
+                            ConnectionList.Visibility = Visibility.Collapsed;
                         }
                         else
                         {
@@ -177,6 +206,9 @@ namespace remote_wiring_experience
                 return;
             }
 
+            //determine the selected baud rate
+            uint baudRate = Convert.ToUInt32( ( BaudRateComboBox.SelectedItem as string ) );
+
             //connection properties dictionary, used only for telemetry data
             var properties = new Dictionary<string, string>();
 
@@ -240,7 +272,7 @@ namespace remote_wiring_experience
             App.Arduino.DeviceConnectionFailed += OnConnectionFailed;
 
             connectionAttemptStartedTime = DateTime.Now;
-            App.Connection.begin( 115200, SerialConfig.SERIAL_8N1 );
+            App.Connection.begin( baudRate, SerialConfig.SERIAL_8N1 );
 
             //start a timer for connection timeout
             timeout = new DispatcherTimer();
@@ -264,7 +296,7 @@ namespace remote_wiring_experience
                 App.Telemetry.TrackRequest( "Connection_Failed_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, message, true );
 
                 ConnectMessage.Text = "Connection attempt failed: " + message;
-                SetUiEnabled( true );
+                Reset();
             } ) );
         }
 
@@ -292,7 +324,7 @@ namespace remote_wiring_experience
                 App.Telemetry.TrackRequest( "Connection_Timeout_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
 
                 ConnectMessage.Text = "Connection attempt timed out.";
-                SetUiEnabled( true );
+                Reset();
             } ) );
         }
 
@@ -314,12 +346,18 @@ namespace remote_wiring_experience
         private void OnConnectionCancelled()
         {
             ConnectMessage.Text = "Connection attempt cancelled.";
-            App.Telemetry.TrackRequest( "Connection_Cancelled_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
+            Reset();
+        }
+
+        private void Reset()
+        {
+            if (!navigated) { App.Telemetry.TrackRequest("Connection_Cancelled_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true); }
 
             if( App.Connection != null )
             {
                 App.Connection.ConnectionEstablished -= OnConnectionEstablished;
                 App.Connection.ConnectionFailed -= OnConnectionFailed;
+                App.Connection.end();
             }
 
             if( cancelTokenSource != null )
@@ -332,6 +370,62 @@ namespace remote_wiring_experience
             cancelTokenSource = null;
 
             SetUiEnabled( true );
+        }
+
+        /****************************************************************
+         *                       Menu Bar Callbacks                     *
+         ****************************************************************/
+        /// <summary>
+        /// Called if the pointer hovers over the Digital button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void DigitalButton_Enter(object sender, RoutedEventArgs e)
+        {
+            DigitalRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the Analog button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void AnalogButton_Enter(object sender, RoutedEventArgs e)
+        {
+            AnalogRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the PWM button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void PWMButton_Enter(object sender, RoutedEventArgs e)
+        {
+            PWMRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the About button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void AboutButton_Enter(object sender, RoutedEventArgs e)
+        {
+            AboutRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer exits the boundaries of any button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void Button_Exit(object sender, RoutedEventArgs e)
+        {
+            DigitalRectangle.Visibility = Visibility.Collapsed;
+            AnalogRectangle.Visibility = Visibility.Collapsed;
+            PWMRectangle.Visibility = Visibility.Collapsed;
+            AboutRectangle.Visibility = Visibility.Collapsed;
         }
     }
 }

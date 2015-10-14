@@ -250,7 +250,7 @@ namespace remote_wiring_experience
                     }
 
                     // populate telemetry properties about this connection attempt
-                    App.Telemetry.Context.Properties["connection.name"] = host;
+                    App.Telemetry.Context.Properties["connection.name"] = string.Format("{0:X}", host.GetHashCode());
                     App.Telemetry.Context.Properties["connection.detail"] = string.Format("{0:X}", string.Format("{0}:{1}", host, port).GetHashCode());
                     App.Connection = new NetworkSerial( new Windows.Networking.HostName( host ), portnum );
                     break;

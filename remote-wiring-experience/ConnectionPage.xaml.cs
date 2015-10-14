@@ -217,18 +217,18 @@ namespace remote_wiring_experience
                 case "Bluetooth":
 
                     // populate telemetry properties about this connection attempt
-                    App.Telemetry.Context.Properties["connection.name"] = device.Name;
-                    App.Telemetry.Context.Properties["connection.detail"] = device.Id;
-                    
+                    App.Telemetry.Context.Properties["connection.name"] = String.Format("{0:X}", device.Name.GetHashCode());
+                    App.Telemetry.Context.Properties["connection.detail"] = String.Format("{0:X}", device.Id.GetHashCode());
+
                     App.Connection = new BluetoothSerial( device );
                     break;
 
                 case "USB":
 
                     // populate telemetry properties about this connection attempt
-                    App.Telemetry.Context.Properties["connection.name"] = device.Name;
-                    App.Telemetry.Context.Properties["connection.detail"] = device.Id;
-                    
+                    App.Telemetry.Context.Properties["connection.name"] = string.Format("{0:X}", device.Name.GetHashCode());
+                    App.Telemetry.Context.Properties["connection.detail"] = string.Format("{0:X}", device.Id.GetHashCode());
+
                     App.Connection = new UsbSerial( device );
                     break;
 
@@ -250,8 +250,8 @@ namespace remote_wiring_experience
                     }
 
                     // populate telemetry properties about this connection attempt
-                    App.Telemetry.Context.Properties["connection.name"] = host;
-                    App.Telemetry.Context.Properties["connection.detail"] = string.Format("{0}:{1}", host, port);
+                    App.Telemetry.Context.Properties["connection.name"] = string.Format("{0:X}", host.GetHashCode());
+                    App.Telemetry.Context.Properties["connection.detail"] = string.Format("{0:X}", string.Format("{0}:{1}", host, port).GetHashCode());
                     App.Connection = new NetworkSerial( new Windows.Networking.HostName( host ), portnum );
                     break;
             }

@@ -10,6 +10,9 @@ using Communication;
 using Microsoft.Maker.Serial;
 using Microsoft.Maker.RemoteWiring;
 using System.Collections.Generic;
+using System.Diagnostics;
+using Windows.UI.Xaml.Media.Imaging;
+using Windows.UI.Xaml.Media;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -21,9 +24,15 @@ namespace remote_wiring_experience
     public sealed partial class ConnectionPage : Page
     {
         DispatcherTimer timeout;
-        DateTime connectionAttemptStartedTime;
+        // stopwatch for tracking connection timing
+        Stopwatch connectionStopwatch = new Stopwatch();
         DateTime timePageNavigatedTo;
         CancellationTokenSource cancelTokenSource;
+
+        BitmapImage wireBitmap;
+        Image wire;
+
+        bool navigated = false;
 
         public ConnectionPage()
         {
@@ -35,11 +44,21 @@ namespace remote_wiring_experience
         {
             base.OnNavigatedTo( e );
 
+            navigated = true;
+            Reset();
+            navigated = false;
+
             //telemetry
-            App.Telemetry.TrackPageView( "Connection_Page" );
             timePageNavigatedTo = DateTime.Now;
 
-            if( ConnectionList.ItemsSource == null )
+            // Load assets for wire icon
+            wireBitmap = new BitmapImage(new Uri(BaseUri, @"Assets/wire.png"));
+            wire = new Image();
+            wire.Stretch = Stretch.Uniform;
+            wire.Source = wireBitmap;
+            WireStack.Children.Add(wire);
+
+            if ( ConnectionList.ItemsSource == null )
             {
                 ConnectMessage.Text = "Select an item to connect to.";
                 RefreshDeviceList();
@@ -61,7 +80,11 @@ namespace remote_wiring_experience
                 default:
                 case "Bluetooth":
                     ConnectionList.Visibility = Visibility.Visible;
-                    NetworkConnectionGrid.Visibility = Visibility.Collapsed;
+                    DevicesText.Visibility = Visibility.Visible;
+                    NetworkHostNameTextBox.IsEnabled = false;
+                    NetworkPortTextBox.IsEnabled = false;
+                    NetworkHostNameTextBox.Text = "";
+                    NetworkPortTextBox.Text = "";
 
                     //create a cancellation token which can be used to cancel a task
                     cancelTokenSource = new CancellationTokenSource();
@@ -72,7 +95,11 @@ namespace remote_wiring_experience
 
                 case "USB":
                     ConnectionList.Visibility = Visibility.Visible;
-                    NetworkConnectionGrid.Visibility = Visibility.Collapsed;
+                    DevicesText.Visibility = Visibility.Visible;
+                    NetworkHostNameTextBox.IsEnabled = false;
+                    NetworkPortTextBox.IsEnabled = false;
+                    NetworkHostNameTextBox.Text = "";
+                    NetworkPortTextBox.Text = "";
 
                     //create a cancellation token which can be used to cancel a task
                     cancelTokenSource = new CancellationTokenSource();
@@ -83,8 +110,10 @@ namespace remote_wiring_experience
 
                 case "Network":
                     ConnectionList.Visibility = Visibility.Collapsed;
-                    NetworkConnectionGrid.Visibility = Visibility.Visible;
-                    ConnectMessage.Text = "Enter a host and port to connect";
+                    DevicesText.Visibility = Visibility.Collapsed;
+                    NetworkHostNameTextBox.IsEnabled = true;
+                    NetworkPortTextBox.IsEnabled = true;
+                    ConnectMessage.Text = "Enter a host and port to connect.";
                     task = null;
                     break;
             }
@@ -103,6 +132,7 @@ namespace remote_wiring_experience
                         if( result == null || result.Count == 0 )
                         {
                             ConnectMessage.Text = "No items found.";
+                            ConnectionList.Visibility = Visibility.Collapsed;
                         }
                         else
                         {
@@ -179,31 +209,25 @@ namespace remote_wiring_experience
 
             //determine the selected baud rate
             uint baudRate = Convert.ToUInt32( ( BaudRateComboBox.SelectedItem as string ) );
-
-            //connection properties dictionary, used only for telemetry data
-            var properties = new Dictionary<string, string>();
-
+            
             //use the selected device to create our communication object
             switch( ConnectionMethodComboBox.SelectedItem as string )
             {
                 default:
                 case "Bluetooth":
 
-                    //send telemetry about this connection attempt
-                    properties.Add( "Device_Name", device.Name );
-                    properties.Add( "Device_ID", device.Id );
-                    properties.Add( "Device_Kind", device.Kind.ToString() );
-                    App.Telemetry.TrackEvent( "Bluetooth_Connection_Attempt", properties );
+                    // populate telemetry properties about this connection attempt
+                    App.Telemetry.Context.Properties["connection.name"] = String.Format("{0:X}", device.Name.GetHashCode());
+                    App.Telemetry.Context.Properties["connection.detail"] = String.Format("{0:X}", device.Id.GetHashCode());
+
                     App.Connection = new BluetoothSerial( device );
                     break;
 
                 case "USB":
 
-                    //send telemetry about this connection attempt
-                    properties.Add( "Device_Name", device.Name );
-                    properties.Add( "Device_ID", device.Id );
-                    properties.Add( "Device_Kind", device.Kind.ToString() );
-                    App.Telemetry.TrackEvent( "USB_Connection_Attempt", properties );
+                    // populate telemetry properties about this connection attempt
+                    App.Telemetry.Context.Properties["connection.name"] = string.Format("{0:X}", device.Name.GetHashCode());
+                    App.Telemetry.Context.Properties["connection.detail"] = string.Format("{0:X}", device.Id.GetHashCode());
 
                     App.Connection = new UsbSerial( device );
                     break;
@@ -213,36 +237,36 @@ namespace remote_wiring_experience
                     string port = NetworkPortTextBox.Text;
                     ushort portnum = 0;
 
-                    if( host == null || port == null )
+                    if (Uri.CheckHostName(host) == UriHostNameType.Unknown)
                     {
-                        ConnectMessage.Text = "You must enter host and IP.";
+                        ConnectMessage.Text = "You have entered an invalid host or IP.";
                         return;
                     }
 
-                    try
-                    {
-                        portnum = Convert.ToUInt16( port );
-                    }
-                    catch( FormatException )
+                    if (!ushort.TryParse(port, out portnum))
                     {
                         ConnectMessage.Text = "You have entered an invalid port number.";
                         return;
                     }
 
-                    //send telemetry about this connection attempt
-                    properties.Add( "host", host );
-                    properties.Add( "port", portnum.ToString() );
-                    App.Telemetry.TrackEvent( "Network_Connection_Attempt", properties );
-
+                    // populate telemetry properties about this connection attempt
+                    App.Telemetry.Context.Properties["connection.name"] = string.Format("{0:X}", host.GetHashCode());
+                    App.Telemetry.Context.Properties["connection.detail"] = string.Format("{0:X}", string.Format("{0}:{1}", host, port).GetHashCode());
                     App.Connection = new NetworkSerial( new Windows.Networking.HostName( host ), portnum );
                     break;
             }
+
+            App.Telemetry.Context.Properties["connection.type"] = App.Connection.GetType().Name;
+            App.Telemetry.Context.Properties["connection.state"] = "Connecting";
+            App.Telemetry.TrackEvent("Connection_Attempt");
 
             App.Arduino = new RemoteDevice( App.Connection );
             App.Arduino.DeviceReady += OnConnectionEstablished;
             App.Arduino.DeviceConnectionFailed += OnConnectionFailed;
 
-            connectionAttemptStartedTime = DateTime.Now;
+            connectionStopwatch.Reset();
+            connectionStopwatch.Start();
+
             App.Connection.begin( baudRate, SerialConfig.SERIAL_8N1 );
 
             //start a timer for connection timeout
@@ -262,11 +286,13 @@ namespace remote_wiring_experience
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
                 timeout.Stop();
+                ConnectMessage.Text = "Connection attempt failed: " + message;
 
                 //telemetry
-                App.Telemetry.TrackRequest( "Connection_Failed_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, message, true );
+                connectionStopwatch.Stop();
+                App.Telemetry.Context.Properties["connection.state"] = "Failed";
+                TrackConnectionEvent(ConnectMessage.Text, connectionStopwatch);
 
-                ConnectMessage.Text = "Connection attempt failed: " + message;
                 Reset();
             } ) );
         }
@@ -276,9 +302,12 @@ namespace remote_wiring_experience
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
                 timeout.Stop();
-                
+                ConnectMessage.Text = "Successfully connected!";
+
                 //telemetry
-                App.Telemetry.TrackRequest( "Connection_Success_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
+                connectionStopwatch.Stop();
+                App.Telemetry.Context.Properties["connection.state"] = "Connected";
+                TrackConnectionEvent(ConnectMessage.Text, connectionStopwatch);
                 App.Telemetry.TrackMetric( "Connection_Page_Time_Spent_In_Seconds", ( DateTime.Now - timePageNavigatedTo ).TotalSeconds );
 
                 this.Frame.Navigate( typeof( MainPage ) );
@@ -290,15 +319,32 @@ namespace remote_wiring_experience
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
                 timeout.Stop();
+                ConnectMessage.Text = "Connection attempt timed out.";
 
                 //telemetry
-                App.Telemetry.TrackRequest( "Connection_Timeout_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
-
-                ConnectMessage.Text = "Connection attempt timed out.";
+                App.Telemetry.Context.Properties["connection.state"] = "Timeout";
+                connectionStopwatch.Stop();
+                TrackConnectionEvent(ConnectMessage.Text, connectionStopwatch);
+                
                 Reset();
             } ) );
         }
 
+        /// <summary>
+        /// This function is invoked if a cancellation is invoked for any reason on the connection task
+        /// </summary>
+        private void OnConnectionCancelled()
+        {
+            timeout.Stop();
+            ConnectMessage.Text = "Connection attempt cancelled.";
+
+            //telemetry
+            App.Telemetry.Context.Properties["connection.state"] = "Cancelled";
+            connectionStopwatch.Stop();
+            TrackConnectionEvent(ConnectMessage.Text, connectionStopwatch);
+
+            Reset();
+        }
 
         /****************************************************************
          *                  Helper functions                            *
@@ -311,19 +357,8 @@ namespace remote_wiring_experience
             CancelButton.IsEnabled = !enabled;
         }
 
-        /// <summary>
-        /// This function is invoked if a cancellation is invoked for any reason on the connection task
-        /// </summary>
-        private void OnConnectionCancelled()
-        {
-            ConnectMessage.Text = "Connection attempt cancelled.";
-            Reset();
-        }
-
         private void Reset()
         {
-            App.Telemetry.TrackRequest( "Connection_Cancelled_Event", DateTimeOffset.Now, DateTime.Now - connectionAttemptStartedTime, string.Empty, true );
-
             if( App.Connection != null )
             {
                 App.Connection.ConnectionEstablished -= OnConnectionEstablished;
@@ -341,6 +376,78 @@ namespace remote_wiring_experience
             cancelTokenSource = null;
 
             SetUiEnabled( true );
+        }
+
+        private void TrackConnectionEvent(string message, Stopwatch stopwatch)
+        {
+            var metrics = new Dictionary<string, double>
+                {
+                    {"connection.elapsed", stopwatch.Elapsed.TotalMilliseconds}
+                };
+
+            var telemetryProperties = new Dictionary<string, string>
+                {
+                    {"connection.message", message}
+                };
+
+            App.Telemetry.TrackEvent("Connection", telemetryProperties, metrics);
+        }
+
+
+        /****************************************************************
+         *                       Menu Bar Callbacks                     *
+         ****************************************************************/
+        /// <summary>
+        /// Called if the pointer hovers over the Digital button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void DigitalButton_Enter(object sender, RoutedEventArgs e)
+        {
+            DigitalRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the Analog button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void AnalogButton_Enter(object sender, RoutedEventArgs e)
+        {
+            AnalogRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the PWM button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void PWMButton_Enter(object sender, RoutedEventArgs e)
+        {
+            PWMRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer hovers over the About button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void AboutButton_Enter(object sender, RoutedEventArgs e)
+        {
+            AboutRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
+        /// Called if the pointer exits the boundaries of any button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void Button_Exit(object sender, RoutedEventArgs e)
+        {
+            DigitalRectangle.Visibility = Visibility.Collapsed;
+            AnalogRectangle.Visibility = Visibility.Collapsed;
+            PWMRectangle.Visibility = Visibility.Collapsed;
+            AboutRectangle.Visibility = Visibility.Collapsed;
         }
     }
 }

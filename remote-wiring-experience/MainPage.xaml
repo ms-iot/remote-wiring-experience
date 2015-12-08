@@ -8,19 +8,6 @@
     Background="White"
     mc:Ignorable="d">
 
-    <!--<Pivot Name="DeviceControlPivot" PivotItemLoaded="Pivot_PivotItemLoaded" PivotItemUnloading="Pivot_PivotItemUnloading">
-        <PivotItem Name="Digital" Header="Digital">
-            <ScrollViewer>
-                <StackPanel Name="DigitalControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-            </ScrollViewer>
-        </PivotItem>
-        <PivotItem Name="Analog" Header="Analog">
-            <ScrollViewer>
-                <StackPanel Name="AnalogControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-            </ScrollViewer>
-        </PivotItem>
-    </Pivot>-->
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="53"/>

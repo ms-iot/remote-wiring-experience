@@ -150,10 +150,10 @@ namespace remote_wiring_experience
                 var button = sender as ToggleSwitch;
                 var pin = GetPinFromButtonObject(button);
 
-                //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
-                if (pin == 0 || pin == 1)
+                //this really shouldn't happen, since the UI controls should be disabled
+                if( disabledPins.Contains( pin ) )
                 {
-                    ShowToast("Pin unavailable.", "That pin is in use as a serial pin and cannot be used.", null);
+                    ShowToast("Pin unavailable.", "That pin is disabled and cannot be used.", null);
                     return;
                 }
 
@@ -193,10 +193,10 @@ namespace remote_wiring_experience
                 var button = sender as ToggleSwitch;
                 var pin = GetPinFromButtonObject(button);
 
-                //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
-                if (pin == 0 || pin == 1)
+                //this really shouldn't happen, since the UI controls should be disabled
+                if( disabledPins.Contains( pin ) )
                 {
-                    ShowToast("Pin unavailable.", "That pin is in use as a serial pin and cannot be used.", null);
+                    ShowToast( "Pin unavailable.", "That pin is disabled and cannot be used.", null );
                     return;
                 }
 

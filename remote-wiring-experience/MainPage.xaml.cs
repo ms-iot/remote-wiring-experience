@@ -25,10 +25,12 @@ namespace remote_wiring_experience
         /*
          * we want to programatically create our UI using RetrieveDeviceConfiguration so that we can support any Arduino type
          */
-        private byte[] analogPins;
-        private byte[] digitalPins;
-        private byte[] pwmPins;
-        private byte[] i2cPins;
+        private List<byte> disabledPins;
+        private List<byte> analogPins;
+        private List<byte> digitalPins;
+        private List<byte> pwmPins;
+        private List<byte> i2cPins;
+        private int analogOffset;
         private bool isI2cEnabled = false;
 
 
@@ -41,16 +43,26 @@ namespace remote_wiring_experience
                 throw new NullReferenceException( "RemoteDevice HardwareProfile is invalid" );
             }
 
-            List<byte> analogPins = new List<byte>();
-            List<byte> digitalPins = new List<byte>();
-            List<byte> pwmPins = new List<byte>();
-            List<byte> i2cPins = new List<byte>();
+            analogOffset = hardware.AnalogOffset;
+            disabledPins = new List<byte>();
+            analogPins = new List<byte>();
+            digitalPins = new List<byte>();
+            pwmPins = new List<byte>();
+            i2cPins = new List<byte>();
 
             //HardwareProfile offers helper functions to determine if a pin has a single capability at a time,
             //however, we'll do this manually since we care about multiple capabilities & it will therefore be more performant
             for( byte pin = 0; pin < hardware.TotalPinCount; ++pin )
             {
                 byte mask = hardware.getPinCapabilitiesBitmask( pin );
+
+                //disabled pins are typically Serial pins & will be shown on the digital page
+                if( mask == 0 )
+                {
+                    disabledPins.Add( pin );
+                    digitalPins.Add( pin );
+                    continue;
+                }
 
                 if( ( mask & (byte)PinCapability.ANALOG ) > 0 )
                 {
@@ -72,11 +84,6 @@ namespace remote_wiring_experience
                     i2cPins.Add( pin );
                 }
             }
-
-            this.analogPins = analogPins.ToArray();
-            this.digitalPins = digitalPins.ToArray();
-            this.pwmPins = pwmPins.ToArray();
-            this.i2cPins = i2cPins.ToArray();
         }
 
         //stores image assets so that they can be loaded once and reused many times
@@ -132,7 +139,7 @@ namespace remote_wiring_experience
             arduino.DigitalPinUpdated += Arduino_OnDigitalPinUpdated;
             arduino.AnalogPinUpdated += Arduino_OnAnalogPinUpdated;
 
-            for (byte pin = 0; pin < digitalPins.Length; ++pin)
+            for (byte pin = 0; pin < digitalPins.Count; ++pin)
             {
                 UpdateDigitalPinIndicators(pin);
             }
@@ -378,9 +385,11 @@ namespace remote_wiring_experience
         /// </summary>
         private void loadDigitalControls()
         {
-            //add controls and state change indicators/buttons for each digital pin the board supports
-            for (byte i = 0; i < digitalPins.Length; ++i)
+            //add controls and state change indicators/buttons for each digital pin and disabled pin the board supports
+            for (byte i = 0; i < digitalPins.Count; ++i)
             {
+                bool isPinDisabled = disabledPins.Contains( digitalPins[i] );
+
                 // Container stack to hold all pieces of new row of pins.
                 var containerStack = new StackPanel();
                 containerStack.Orientation = Orientation.Horizontal;
@@ -398,7 +407,7 @@ namespace remote_wiring_experience
                 text.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text.VerticalAlignment = VerticalAlignment.Center;
                 text.Margin = new Thickness(0, 0, 0, 0);
-                text.Text = "Pin " + i;
+                text.Text = "Pin " + ( analogPins.Contains( digitalPins[i] ) ? "A" + ( digitalPins[i] - analogOffset ) : "" + digitalPins[i] );
                 text.FontSize = 14;
                 text.FontWeight = FontWeights.SemiBold;
 
@@ -428,15 +437,14 @@ namespace remote_wiring_experience
                 toggleSwitch.Margin = new Thickness(5, 0, 5, 0);
                 toggleSwitch.Name = "digitalmode_" + i;
                 toggleSwitch.Toggled += OnClick_DigitalModeToggleSwitch;
-                if (i == 1 || i == 0) { toggleSwitch.IsEnabled = false; }
+                toggleSwitch.IsEnabled = !isPinDisabled;
 
                 var onContent = new TextBlock();
                 onContent.Text = "Input";
                 onContent.FontSize = 14;
                 toggleSwitch.OnContent = onContent;
                 var offContent = new TextBlock();
-                offContent.Text = "Output";
-                if (i == 1 || i == 0) { offContent.Text = "Disabled"; }
+                offContent.Text = ( isPinDisabled ? "Disabled" : "Output" );
                 offContent.FontSize = 14;
                 toggleSwitch.OffContent = offContent;
                 digitalModeToggleSwitches.Add(i, toggleSwitch);
@@ -456,15 +464,14 @@ namespace remote_wiring_experience
                 toggleSwitch2.Margin = new Thickness(1, 0, 5, 0);
                 toggleSwitch2.Name = "digitalstate_" + i;
                 toggleSwitch2.Toggled += OnClick_DigitalStateToggleSwitch;
-                if (i == 1 || i == 0) { toggleSwitch2.IsEnabled = false; }
+                toggleSwitch2.IsEnabled = !isPinDisabled;
 
                 var onContent2 = new TextBlock();
                 onContent2.Text = "5v";
                 onContent2.FontSize = 14;
                 toggleSwitch2.OnContent = onContent2;
                 var offContent2 = new TextBlock();
-                offContent2.Text = "0v";
-                if (i == 1 || i == 0) { offContent2.Text = "Disabled"; }
+                offContent2.Text = ( isPinDisabled ? "Disabled" : "0v" );
                 offContent2.FontSize = 14;
                 toggleSwitch2.OffContent = offContent2;
                 digitalStateToggleSwitches.Add(i, toggleSwitch2);
@@ -473,7 +480,7 @@ namespace remote_wiring_experience
                 text3.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text3.VerticalAlignment = VerticalAlignment.Center;
                 text3.Margin = new Thickness(0, 0, 0, 0);
-                if (i == 1 || i == 0)
+                if( isPinDisabled )
                 {
                     text3.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
                     text3.Text = "Disabled for serial connection.";
@@ -501,7 +508,7 @@ namespace remote_wiring_experience
         private void loadAnalogControls()
         {
             //add controls and text fields for each analog pin the board supports
-            for( byte i = 0; i < analogPins.Length; ++i )
+            for( byte i = 0; i < analogPins.Count; ++i )
             {
                 // Container stack to hold all pieces of new row of pins.
                 var containerStack = new StackPanel();
@@ -520,7 +527,7 @@ namespace remote_wiring_experience
                 text.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text.VerticalAlignment = VerticalAlignment.Center;
                 text.Margin = new Thickness(0, 0, 0, 0);
-                text.Text = "Pin A" + ( analogPins[i] - digitalPins.Length );
+                text.Text = "Pin A" + ( analogPins[i] - digitalPins.Count );
                 text.FontSize = 14;
                 text.FontWeight = FontWeights.SemiBold;
 
@@ -586,7 +593,7 @@ namespace remote_wiring_experience
         private void loadPWMControls()
         {
             //add controls and value sliders for each pwm pin the board supports
-            for (byte i = 0; i < pwmPins.Length; ++i)
+            for (byte i = 0; i < pwmPins.Count; ++i)
             {
                 // Container stack to hold all pieces of new row of pins.
                 var containerStack = new StackPanel();
@@ -913,7 +920,7 @@ namespace remote_wiring_experience
         /// <returns></returns>
         private byte ConvertAnalogPinToPinNumber( byte pin )
         {
-            return (byte)( pin + digitalPins.Length );
+            return (byte)( pin + digitalPins.Count );
         }
 
         /// <summary>
@@ -997,7 +1004,7 @@ namespace remote_wiring_experience
                     DigitalRectangle.Visibility = Visibility.Visible;
 
                     //update digital indicators
-                    for( byte pin = 0; pin < digitalPins.Length; ++pin )
+                    for( byte pin = 0; pin < digitalPins.Count; ++pin )
                     {
                         navigated = true;
                         UpdateDigitalPinIndicators( pin );
@@ -1016,7 +1023,7 @@ namespace remote_wiring_experience
                     AnalogText.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 14, 127, 217 ) );
 
                     //update analog indicators
-                    for( byte pin = 0; pin < analogPins.Length; ++pin )
+                    for( byte pin = 0; pin < analogPins.Count; ++pin )
                     {
                         UpdateAnalogPinModeIndicator( pin );
                     }
@@ -1034,7 +1041,7 @@ namespace remote_wiring_experience
                     PWMText.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 14, 127, 217 ) );
 
                     //update PWM indicators
-                    for( byte pin = 0; pin < pwmPins.Length; ++pin )
+                    for( byte pin = 0; pin < pwmPins.Count; ++pin )
                     {
                         UpdatePwmPinModeIndicator( pin );
                     }

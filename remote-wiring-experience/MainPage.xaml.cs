@@ -33,62 +33,6 @@ namespace remote_wiring_experience
         private int analogOffset;
         private bool isI2cEnabled = false;
 
-
-        private void RetrieveDeviceConfiguration()
-        {
-            HardwareProfile hardware = App.Arduino.DeviceHardwareProfile;
-            if( hardware == null )
-            {
-                //This app will never use unsafe mode, so the hardware profile should never be null
-                throw new NullReferenceException( "RemoteDevice HardwareProfile is invalid" );
-            }
-
-            analogOffset = hardware.AnalogOffset;
-            disabledPins = new List<byte>();
-            analogPins = new List<byte>();
-            digitalPins = new List<byte>();
-            pwmPins = new List<byte>();
-            i2cPins = new List<byte>();
-
-            //HardwareProfile offers helper functions to determine if a pin has a single capability at a time,
-            //however, we'll do this manually since we care about multiple capabilities & it will therefore be more performant
-            for( byte pin = 0; pin < hardware.TotalPinCount; ++pin )
-            {
-                byte mask = hardware.getPinCapabilitiesBitmask( pin );
-
-                //disabled pins are typically Serial pins & will be shown on the digital page
-                if( mask == 0 )
-                {
-                    disabledPins.Add( pin );
-                    digitalPins.Add( pin );
-                    continue;
-                }
-
-                if( ( mask & (byte)PinCapability.ANALOG ) > 0 )
-                {
-                    analogPins.Add( pin );
-
-                    //set the initial state to digital output, pinMode will do nothing if not supported
-                    App.Arduino.pinMode( pin, PinMode.OUTPUT );
-                }
-
-                if( ( mask & (byte)PinCapability.INPUT ) > 0 || ( mask & (byte)PinCapability.OUTPUT ) > 0 )
-                {
-                    digitalPins.Add( pin );
-                }
-
-                if( ( mask & (byte)PinCapability.PWM ) > 0 )
-                {
-                    pwmPins.Add( pin );
-                }
-
-                if( ( mask & (byte)PinCapability.I2C ) > 0 )
-                {
-                    i2cPins.Add( pin );
-                }
-            }
-        }
-
         //stores image assets so that they can be loaded once and reused many times
         private Dictionary<string, BitmapImage> bitmaps;
 
@@ -142,9 +86,9 @@ namespace remote_wiring_experience
             arduino.DigitalPinUpdated += Arduino_OnDigitalPinUpdated;
             arduino.AnalogPinUpdated += Arduino_OnAnalogPinUpdated;
 
-            for (byte pin = 0; pin < digitalPins.Count; ++pin)
+            for (byte i = 0; i < digitalPins.Count; ++i)
             {
-                UpdateDigitalPinIndicators(pin);
+                UpdateDigitalPinIndicators( digitalPins[i] );
             }
 
             App.Telemetry.TrackPageView("Digital_Controls_Page");
@@ -166,7 +110,7 @@ namespace remote_wiring_experience
             //we must dispatch the change to the UI thread to update the text field.
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
-                UpdateAnalogIndicators( pin, value );
+                UpdateAnalogValueIndicator( pin, value );
                 UpdatePwmPinModeIndicator(pin);
             } ) );
         }
@@ -710,7 +654,7 @@ namespace remote_wiring_experience
         /// This function will determine which pin mode image should be applied for a given digital pin and apply it to the correct Image object
         /// </summary>
         /// <param name="pin">the pin number to be updated</param>
-        private void UpdateDigitalPinIndicators(byte pin)
+        private void UpdateDigitalPinIndicators( byte pin )
         {
             if (!digitalModeToggleSwitches.ContainsKey(pin)) return;
             
@@ -819,11 +763,10 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="pin">the pin number to be updated</param>
         /// <param name="value">the value to display</param>
-        private void UpdateAnalogIndicators( byte pin, ushort value )
+        private void UpdateAnalogValueIndicator( byte pin, ushort value )
         {
             if( arduino.getPinMode( "A" + pin ) != PinMode.ANALOG ) return;
             if( analogTextBlocks.ContainsKey( pin ) ) analogTextBlocks[pin].Text = Convert.ToString( value );
-            //if( analogSliders.ContainsKey( pin ) ) analogSliders[pin].Value = value;
         }
 
         /// <summary>
@@ -892,6 +835,19 @@ namespace remote_wiring_experience
         //* Utility Functions
         //******************************************************************************
 
+
+        /// <summary>
+        /// Arduino numbers their analog pins directly after the digital pins. Meaning A0 is actally pin 14 on an Uno,
+        /// because there are 14 digital pins on an Uno. Therefore, when we're working with functions that don't know the
+        /// difference between Analog and Digital pin numbers, we need to convert pin 0 (meaning A0) into pin + numberOfDigitalPins
+        /// </summary>
+        /// <param name="pin"></param>
+        /// <returns></returns>
+        private byte ConvertAnalogPinToPinNumber( byte pin )
+        {
+            return (byte)( pin + digitalPins.Count );
+        }
+
         /// <summary>
         /// retrieves the pin number associated with a button object
         /// </summary>
@@ -933,17 +889,59 @@ namespace remote_wiring_experience
             return (uint)val;
         }
 
-
-        /// <summary>
-        /// Arduino numbers their analog pins directly after the digital pins. Meaning A0 is actally pin 14 on an Uno,
-        /// because there are 14 digital pins on an Uno. Therefore, when we're working with functions that don't know the
-        /// difference between Analog and Digital pin numbers, we need to convert pin 0 (meaning A0) into pin + numberOfDigitalPins
-        /// </summary>
-        /// <param name="pin"></param>
-        /// <returns></returns>
-        private byte ConvertAnalogPinToPinNumber( byte pin )
+        private void RetrieveDeviceConfiguration()
         {
-            return (byte)( pin + digitalPins.Count );
+            HardwareProfile hardware = App.Arduino.DeviceHardwareProfile;
+            if( hardware == null )
+            {
+                //This app will never use unsafe mode, so the hardware profile should never be null
+                throw new NullReferenceException( "RemoteDevice HardwareProfile is invalid" );
+            }
+
+            analogOffset = hardware.AnalogOffset;
+            disabledPins = new List<byte>();
+            analogPins = new List<byte>();
+            digitalPins = new List<byte>();
+            pwmPins = new List<byte>();
+            i2cPins = new List<byte>();
+
+            //HardwareProfile offers helper functions to determine if a pin has a single capability at a time,
+            //however, we'll do this manually since we care about multiple capabilities & it will therefore be more performant
+            for( byte pin = 0; pin < hardware.TotalPinCount; ++pin )
+            {
+                byte mask = hardware.getPinCapabilitiesBitmask( pin );
+
+                //disabled pins are typically Serial pins & will be shown on the digital page
+                if( mask == 0 )
+                {
+                    disabledPins.Add( pin );
+                    digitalPins.Add( pin );
+                    continue;
+                }
+
+                if( ( mask & (byte)PinCapability.ANALOG ) > 0 )
+                {
+                    analogPins.Add( pin );
+
+                    //set the initial state to digital output, pinMode will do nothing if not supported
+                    App.Arduino.pinMode( pin, PinMode.OUTPUT );
+                }
+
+                if( ( mask & (byte)PinCapability.INPUT ) > 0 || ( mask & (byte)PinCapability.OUTPUT ) > 0 )
+                {
+                    digitalPins.Add( pin );
+                }
+
+                if( ( mask & (byte)PinCapability.PWM ) > 0 )
+                {
+                    pwmPins.Add( pin );
+                }
+
+                if( ( mask & (byte)PinCapability.I2C ) > 0 )
+                {
+                    i2cPins.Add( pin );
+                }
+            }
         }
 
         /// <summary>
@@ -1046,9 +1044,9 @@ namespace remote_wiring_experience
                     AnalogText.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 14, 127, 217 ) );
 
                     //update analog indicators
-                    for( byte pin = 0; pin < analogPins.Count; ++pin )
+                    for( byte i = 0; i < analogPins.Count; ++i )
                     {
-                        UpdateAnalogPinModeIndicator( pin );
+                        UpdateAnalogPinModeIndicator( analogPins[i] );
                     }
 
                     App.Telemetry.TrackPageView( "Analog_Controls_Page" );

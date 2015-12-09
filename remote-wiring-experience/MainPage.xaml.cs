@@ -67,6 +67,9 @@ namespace remote_wiring_experience
                 if( ( mask & (byte)PinCapability.ANALOG ) > 0 )
                 {
                     analogPins.Add( pin );
+
+                    //set the initial state to digital output, pinMode will do nothing if not supported
+                    App.Arduino.pinMode( pin, PinMode.OUTPUT );
                 }
 
                 if( ( mask & (byte)PinCapability.INPUT ) > 0 || ( mask & (byte)PinCapability.OUTPUT ) > 0 )
@@ -483,7 +486,7 @@ namespace remote_wiring_experience
                 if( isPinDisabled )
                 {
                     text3.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
-                    text3.Text = "Disabled for serial connection.";
+                    text3.Text = "Disabled for serial connection or other use.";
                 }
                 else
                 {
@@ -710,9 +713,8 @@ namespace remote_wiring_experience
         private void UpdateDigitalPinIndicators(byte pin)
         {
             if (!digitalModeToggleSwitches.ContainsKey(pin)) return;
-
-            //pins 0 and 1 are the serial pins and are in use. this manual check will show them as disabled
-            if (pin == 0 || pin == 1)
+            
+            if( disabledPins.Contains( pin ) )
             {
                 digitalModeToggleSwitches[pin].IsEnabled = false;
                 digitalStateToggleSwitches[pin].IsEnabled = false;
@@ -720,7 +722,10 @@ namespace remote_wiring_experience
                 digitalStateTextBlocks[pin].Visibility = Visibility.Visible;
             }
             else
-                switch (arduino.getPinMode(pin))
+            {
+                PinMode mode = arduino.getPinMode( pin );
+                bool applyUsageMessage = false;
+                switch( mode )
                 {
                     case PinMode.INPUT:
                         digitalModeToggleSwitches[pin].IsEnabled = true;
@@ -728,31 +733,49 @@ namespace remote_wiring_experience
                         navigated = false;
                         digitalStateToggleSwitches[pin].IsEnabled = true;
                         digitalStateToggleSwitches[pin].Visibility = Visibility.Collapsed;
-                        digitalStateTextBlocks[pin].Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 0, 0));
-                        digitalStateTextBlocks[pin].Text = ((arduino.digitalRead(pin)) == PinState.HIGH) ? "5v" : "0v";
+                        digitalStateTextBlocks[pin].Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 0, 0, 0 ) );
+                        digitalStateTextBlocks[pin].Text = ( ( arduino.digitalRead( pin ) ) == PinState.HIGH ) ? "5v" : "0v";
                         digitalStateTextBlocks[pin].Visibility = Visibility.Visible;
                         break;
 
                     case PinMode.OUTPUT:
                         digitalModeToggleSwitches[pin].IsEnabled = true;
-                        // Boolean used to ensure that when slider is toggled, all unwanted events do not occur.
                         digitalModeToggleSwitches[pin].IsOn = false;
                         navigated = false;
                         digitalStateToggleSwitches[pin].IsEnabled = true;
                         digitalStateToggleSwitches[pin].Visibility = Visibility.Visible;
                         digitalStateTextBlocks[pin].Visibility = Visibility.Collapsed;
                         break;
-
+                        
                     default:
-                    case PinMode.PWM:
+                        applyUsageMessage = true;
                         digitalModeToggleSwitches[pin].IsEnabled = false;
                         digitalStateToggleSwitches[pin].IsEnabled = false;
                         digitalStateToggleSwitches[pin].Visibility = Visibility.Collapsed;
-                        digitalStateTextBlocks[pin].Text = "Disabled for PWM use.";
-                        digitalStateTextBlocks[pin].Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                        digitalStateTextBlocks[pin].Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 106, 107, 106 ) );
                         digitalStateTextBlocks[pin].Visibility = Visibility.Visible;
                         break;
                 }
+
+                //PWM and ANALOG have the same UI config as 'default' in the switch above, but we want a custom message. Two switches reduce duplicate code.
+                if( applyUsageMessage )
+                {
+                    switch( mode )
+                    {
+                        case PinMode.PWM:
+                            digitalStateTextBlocks[pin].Text = "Disabled for PWM use.";
+                            break;
+                            
+                        case PinMode.ANALOG:
+                            digitalStateTextBlocks[pin].Text = "Disabled for Analog use.";
+                            break;
+
+                        default:
+                            digitalStateTextBlocks[pin].Text = "Disabled for other use.";
+                            break;
+                    }
+                }
+            }
         }
 
         /// <summary>

@@ -530,7 +530,7 @@ namespace remote_wiring_experience
                 text.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text.VerticalAlignment = VerticalAlignment.Center;
                 text.Margin = new Thickness(0, 0, 0, 0);
-                text.Text = "Pin A" + ( analogPins[i] - digitalPins.Count );
+                text.Text = "Pin A" + ( analogPins[i] - analogOffset );
                 text.FontSize = 14;
                 text.FontWeight = FontWeights.SemiBold;
 

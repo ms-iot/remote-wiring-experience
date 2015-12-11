@@ -25,11 +25,11 @@ namespace remote_wiring_experience
         /*
          * we want to programatically create our UI using RetrieveDeviceConfiguration so that we can support any Arduino type
          */
-        private List<byte> disabledPins;
-        private List<byte> analogPins;
-        private List<byte> digitalPins;
-        private List<byte> pwmPins;
-        private List<byte> i2cPins;
+        private IList<byte> disabledPins;
+        private IList<byte> analogPins;
+        private IList<byte> digitalPins;
+        private IList<byte> pwmPins;
+        private IList<byte> i2cPins;
         private int analogOffset;
         private bool isI2cEnabled = false;
 
@@ -899,49 +899,11 @@ namespace remote_wiring_experience
             }
 
             analogOffset = hardware.AnalogOffset;
-            disabledPins = new List<byte>();
-            analogPins = new List<byte>();
-            digitalPins = new List<byte>();
-            pwmPins = new List<byte>();
-            i2cPins = new List<byte>();
-
-            //HardwareProfile offers helper functions to determine if a pin has a single capability at a time,
-            //however, we'll do this manually since we care about multiple capabilities & it will therefore be more performant
-            for( byte pin = 0; pin < hardware.TotalPinCount; ++pin )
-            {
-                byte mask = hardware.getPinCapabilitiesBitmask( pin );
-
-                //disabled pins are typically Serial pins & will be shown on the digital page
-                if( mask == 0 )
-                {
-                    disabledPins.Add( pin );
-                    digitalPins.Add( pin );
-                    continue;
-                }
-
-                if( ( mask & (byte)PinCapability.ANALOG ) > 0 )
-                {
-                    analogPins.Add( pin );
-
-                    //set the initial state to digital output, pinMode will do nothing if not supported
-                    App.Arduino.pinMode( pin, PinMode.OUTPUT );
-                }
-
-                if( ( mask & (byte)PinCapability.INPUT ) > 0 || ( mask & (byte)PinCapability.OUTPUT ) > 0 )
-                {
-                    digitalPins.Add( pin );
-                }
-
-                if( ( mask & (byte)PinCapability.PWM ) > 0 )
-                {
-                    pwmPins.Add( pin );
-                }
-
-                if( ( mask & (byte)PinCapability.I2C ) > 0 )
-                {
-                    i2cPins.Add( pin );
-                }
-            }
+            disabledPins = hardware.DisabledPins;
+            analogPins = hardware.AnalogPins;
+            digitalPins = hardware.DigitalPins;
+            pwmPins = hardware.PwmPins;
+            i2cPins = hardware.I2cPins;
         }
 
         /// <summary>

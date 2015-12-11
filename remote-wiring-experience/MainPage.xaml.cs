@@ -105,13 +105,13 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="pin">The pin whose value has changed</param>
         /// <param name="value">the new value of the pin</param>
-        private void Arduino_OnAnalogPinUpdated( byte pin, ushort value )
+        private void Arduino_OnAnalogPinUpdated( String pin, ushort value )
         {
             //we must dispatch the change to the UI thread to update the text field.
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
-                UpdateAnalogValueIndicator( pin, value );
-                UpdatePwmPinModeIndicator(pin);
+                byte pinval = Convert.ToByte( pin.Substring( 1 ) );
+                UpdateAnalogValueIndicator( pinval, value );
             } ) );
         }
 

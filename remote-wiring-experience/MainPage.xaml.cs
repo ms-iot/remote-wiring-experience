@@ -904,6 +904,27 @@ namespace remote_wiring_experience
             digitalPins = hardware.DigitalPins;
             pwmPins = hardware.PwmPins;
             i2cPins = hardware.I2cPins;
+
+            //for the purposes of this app, we want to display disabled pins on the digital page and try to explain why they can't be used
+            byte i = 0;
+            foreach( byte b in disabledPins )
+            {
+                for( ; i < digitalPins.Count; ++i )
+                {
+                    if( b < digitalPins[i] )
+                    {
+                        digitalPins.Insert( i, b );
+                        ++i;
+                        break;
+                    }
+                }
+            }
+
+            //we want all analog pins to default to OUTPUT mode for the purposes of the digital page being the first page to load
+            foreach( byte b in analogPins )
+            {
+                App.Arduino.pinMode( b, PinMode.OUTPUT );
+            }
         }
 
         /// <summary>

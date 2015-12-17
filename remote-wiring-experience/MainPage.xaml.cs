@@ -46,7 +46,7 @@ namespace remote_wiring_experience
         private Dictionary<byte, ToggleSwitch> pwmModeToggleSwitches;
         private Dictionary<byte, TextBlock> pwmTextBlocks;
         private Dictionary<byte, Slider> pwmSliders;
-        
+
         private RemoteDevice arduino;
 
         //telemetry-related items
@@ -86,12 +86,12 @@ namespace remote_wiring_experience
             arduino.DigitalPinUpdated += Arduino_OnDigitalPinUpdated;
             arduino.AnalogPinUpdated += Arduino_OnAnalogPinUpdated;
 
-            for (byte i = 0; i < digitalPins.Count; ++i)
+            for( byte i = 0; i < digitalPins.Count; ++i )
             {
                 UpdateDigitalPinIndicators( digitalPins[i] );
             }
 
-            App.Telemetry.TrackPageView("Digital_Controls_Page");
+            App.Telemetry.TrackPageView( "Digital_Controls_Page" );
             lastPageNavigationTime = DateTime.Now;
         }
 
@@ -145,39 +145,39 @@ namespace remote_wiring_experience
         {
             // This bool fixes the bug where voltage returns to 0v after PWM but the slider still represents 5v.
             // Needed because switching from PWM to input to output automatically sets the pin to 0v.
-            if (!navigated)
+            if( !navigated )
             {
                 var button = sender as ToggleSwitch;
-                var pin = GetPinFromButtonObject(button);
+                var pin = GetPinFromButtonObject( button );
 
                 //this really shouldn't happen, since the UI controls should be disabled
                 if( disabledPins.Contains( pin ) )
                 {
-                    ShowToast("Pin unavailable.", "That pin is disabled and cannot be used.", null);
+                    ShowToast( "Pin unavailable.", "That pin is disabled and cannot be used.", null );
                     return;
                 }
 
-                var mode = arduino.getPinMode(pin);
-                var nextMode = (mode == PinMode.OUTPUT) ? PinMode.INPUT : PinMode.OUTPUT;
+                var mode = arduino.getPinMode( pin );
+                var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.INPUT : PinMode.OUTPUT;
 
                 // Fixes bug where voltage returns to 0v after pin input but slider still represents 5v.
                 // Needed because switching to output mode automatically sets pin to 0v.
                 resetVoltage = true;
-                if (nextMode == PinMode.OUTPUT)
+                if( nextMode == PinMode.OUTPUT )
                 {
                     digitalStateToggleSwitches[pin].IsOn = false;
                 }
                 resetVoltage = false;
 
-                arduino.pinMode(pin, nextMode);
+                arduino.pinMode( pin, nextMode );
 
                 //telemetry
                 var properties = new Dictionary<string, string>();
-                properties.Add("pin_number", pin.ToString());
-                properties.Add("new_mode", nextMode.ToString());
-                App.Telemetry.TrackEvent("Digital_Mode_Toggle_Button_Pressed", properties);
+                properties.Add( "pin_number", pin.ToString() );
+                properties.Add( "new_mode", nextMode.ToString() );
+                App.Telemetry.TrackEvent( "Digital_Mode_Toggle_Button_Pressed", properties );
 
-                UpdateDigitalPinIndicators(pin);
+                UpdateDigitalPinIndicators( pin );
             }
         }
 
@@ -188,10 +188,10 @@ namespace remote_wiring_experience
         /// <param name="args">button press event args</param>
         private void OnClick_DigitalStateToggleSwitch( object sender, RoutedEventArgs args )
         {
-            if (!resetVoltage)
+            if( !resetVoltage )
             {
                 var button = sender as ToggleSwitch;
-                var pin = GetPinFromButtonObject(button);
+                var pin = GetPinFromButtonObject( button );
 
                 //this really shouldn't happen, since the UI controls should be disabled
                 if( disabledPins.Contains( pin ) )
@@ -200,24 +200,24 @@ namespace remote_wiring_experience
                     return;
                 }
 
-                if (arduino.getPinMode(pin) != PinMode.OUTPUT)
+                if( arduino.getPinMode( pin ) != PinMode.OUTPUT )
                 {
-                    ShowToast("Incorrect PinMode!", "You must first set this pin to OUTPUT.", null);
+                    ShowToast( "Incorrect PinMode!", "You must first set this pin to OUTPUT.", null );
                     return;
                 }
 
-                var state = arduino.digitalRead(pin);
-                var nextState = (state == PinState.HIGH) ? PinState.LOW : PinState.HIGH;
+                var state = arduino.digitalRead( pin );
+                var nextState = ( state == PinState.HIGH ) ? PinState.LOW : PinState.HIGH;
 
-                arduino.digitalWrite(pin, nextState);
+                arduino.digitalWrite( pin, nextState );
 
                 //telemetry
                 var properties = new Dictionary<string, string>();
-                properties.Add("pin_number", pin.ToString());
-                properties.Add("new_state", nextState.ToString());
-                App.Telemetry.TrackEvent("Digital_State_Toggle_Button_Pressed", properties);
+                properties.Add( "pin_number", pin.ToString() );
+                properties.Add( "new_state", nextState.ToString() );
+                App.Telemetry.TrackEvent( "Digital_State_Toggle_Button_Pressed", properties );
 
-                UpdateDigitalPinIndicators(pin);
+                UpdateDigitalPinIndicators( pin );
             }
         }
 
@@ -227,25 +227,25 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="sender">the button being pressed</param>
         /// <param name="args">button press event args</param>
-        private void OnClick_AnalogModeToggleSwitch(object sender, RoutedEventArgs args)
+        private void OnClick_AnalogModeToggleSwitch( object sender, RoutedEventArgs args )
         {
             var button = sender as ToggleSwitch;
-            var pin = GetPinFromButtonObject(button);
-            var analogPinNumber = ConvertAnalogPinToPinNumber(pin);
+            var pin = GetPinFromButtonObject( button );
+            var analogPinNumber = ConvertAnalogPinToPinNumber( pin );
 
             //var mode = arduino.getPinMode(analogPinNumber);
-            var mode = arduino.getPinMode("A" + pin);
-            var nextMode = (mode == PinMode.OUTPUT) ? PinMode.ANALOG : PinMode.OUTPUT;
+            var mode = arduino.getPinMode( "A" + pin );
+            var nextMode = ( mode == PinMode.OUTPUT ) ? PinMode.ANALOG : PinMode.OUTPUT;
 
-            arduino.pinMode("A" + pin, nextMode);
+            arduino.pinMode( "A" + pin, nextMode );
 
             //telemetry
             var properties = new Dictionary<string, string>();
-            properties.Add("pin_number", pin.ToString());
-            properties.Add("new_mode", nextMode.ToString());
-            App.Telemetry.TrackEvent("Analog_Mode_Toggle_Button_Pressed", properties);
+            properties.Add( "pin_number", pin.ToString() );
+            properties.Add( "new_mode", nextMode.ToString() );
+            App.Telemetry.TrackEvent( "Analog_Mode_Toggle_Button_Pressed", properties );
 
-            UpdateAnalogPinModeIndicator(pin);
+            UpdateAnalogPinModeIndicator( pin );
         }
 
         /// <summary>
@@ -253,16 +253,16 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="sender">the button being pressed</param>
         /// <param name="args">button press event args</param>
-        private void OnClick_PwmModeToggleSwitch(object sender, RoutedEventArgs args)
+        private void OnClick_PwmModeToggleSwitch( object sender, RoutedEventArgs args )
         {
             var button = sender as ToggleSwitch;
-            var pin = GetPinFromButtonObject(button);
+            var pin = GetPinFromButtonObject( button );
 
-            var mode = arduino.getPinMode(pin);
-            var nextMode = (mode == PinMode.PWM) ? PinMode.OUTPUT : PinMode.PWM;
+            var mode = arduino.getPinMode( pin );
+            var nextMode = ( mode == PinMode.PWM ) ? PinMode.OUTPUT : PinMode.PWM;
 
             resetVoltage = true;
-            if (nextMode == PinMode.OUTPUT)
+            if( nextMode == PinMode.OUTPUT )
             {
                 digitalStateToggleSwitches[pin].IsOn = false;
             }
@@ -270,12 +270,12 @@ namespace remote_wiring_experience
 
             //telemetry
             var properties = new Dictionary<string, string>();
-            properties.Add("pin_number", pin.ToString());
-            properties.Add("new_state", nextMode.ToString());
-            App.Telemetry.TrackEvent("Pwm_Mode_Toggle_Button_Pressed", properties);
+            properties.Add( "pin_number", pin.ToString() );
+            properties.Add( "new_state", nextMode.ToString() );
+            App.Telemetry.TrackEvent( "Pwm_Mode_Toggle_Button_Pressed", properties );
 
-            arduino.pinMode(pin, nextMode);
-            UpdatePwmPinModeIndicator(pin);
+            arduino.pinMode( pin, nextMode );
+            UpdatePwmPinModeIndicator( pin );
         }
 
         /// <summary>
@@ -333,7 +333,7 @@ namespace remote_wiring_experience
         private void loadDigitalControls()
         {
             //add controls and state change indicators/buttons for each digital pin and disabled pin the board supports
-            for (byte i = 0; i < digitalPins.Count; ++i)
+            for( byte i = 0; i < digitalPins.Count; ++i )
             {
                 bool isPinDisabled = disabledPins.Contains( digitalPins[i] );
 
@@ -342,7 +342,7 @@ namespace remote_wiring_experience
                 containerStack.Orientation = Orientation.Horizontal;
                 containerStack.FlowDirection = FlowDirection.LeftToRight;
                 containerStack.HorizontalAlignment = HorizontalAlignment.Stretch;
-                containerStack.Margin = new Thickness(8, 0, 0, 20);
+                containerStack.Margin = new Thickness( 8, 0, 0, 20 );
 
                 // Set up the pin text.
                 var textStack = new StackPanel();
@@ -353,7 +353,7 @@ namespace remote_wiring_experience
                 var text = new TextBlock();
                 text.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text.VerticalAlignment = VerticalAlignment.Center;
-                text.Margin = new Thickness(0, 0, 0, 0);
+                text.Margin = new Thickness( 0, 0, 0, 0 );
                 text.Text = "Pin " + ( analogPins.Contains( digitalPins[i] ) ? "A" + ( digitalPins[i] - analogOffset ) : "" + digitalPins[i] );
                 text.FontSize = 14;
                 text.FontWeight = FontWeights.SemiBold;
@@ -361,28 +361,28 @@ namespace remote_wiring_experience
                 var text2 = new TextBlock();
                 text2.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text2.VerticalAlignment = VerticalAlignment.Center;
-                text2.Margin = new Thickness(0, 0, 0, 0);
+                text2.Margin = new Thickness( 0, 0, 0, 0 );
                 text2.Text = "Digital";
-                text2.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text2.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 106, 107, 106 ) );
                 text2.FontSize = 14;
                 text2.FontWeight = FontWeights.SemiBold;
 
-                textStack.Children.Add(text);
-                textStack.Children.Add(text2);
-                containerStack.Children.Add(textStack);
+                textStack.Children.Add( text );
+                textStack.Children.Add( text2 );
+                containerStack.Children.Add( textStack );
 
                 // Set up the mode toggle button.
                 var modeStack = new StackPanel();
                 modeStack.Orientation = Orientation.Horizontal;
                 modeStack.FlowDirection = FlowDirection.LeftToRight;
                 modeStack.HorizontalAlignment = HorizontalAlignment.Stretch;
-                modeStack.Margin = new Thickness(92, 0, 0, 0);
+                modeStack.Margin = new Thickness( 92, 0, 0, 0 );
 
                 var toggleSwitch = new ToggleSwitch();
                 toggleSwitch.HorizontalAlignment = HorizontalAlignment.Left;
                 toggleSwitch.VerticalAlignment = VerticalAlignment.Center;
-                toggleSwitch.Margin = new Thickness(5, 0, 5, 0);
-                toggleSwitch.Name = "digitalmode_" + i;
+                toggleSwitch.Margin = new Thickness( 5, 0, 5, 0 );
+                toggleSwitch.Name = "digitalmode_" + digitalPins[i];
                 toggleSwitch.Toggled += OnClick_DigitalModeToggleSwitch;
                 toggleSwitch.IsEnabled = !isPinDisabled;
 
@@ -394,10 +394,10 @@ namespace remote_wiring_experience
                 offContent.Text = ( isPinDisabled ? "Disabled" : "Output" );
                 offContent.FontSize = 14;
                 toggleSwitch.OffContent = offContent;
-                digitalModeToggleSwitches.Add(i, toggleSwitch);
+                digitalModeToggleSwitches.Add( digitalPins[i], toggleSwitch );
 
-                modeStack.Children.Add(toggleSwitch);
-                containerStack.Children.Add(modeStack);
+                modeStack.Children.Add( toggleSwitch );
+                containerStack.Children.Add( modeStack );
 
                 // Set up the state toggle button.
                 var stateStack = new StackPanel();
@@ -408,8 +408,8 @@ namespace remote_wiring_experience
                 var toggleSwitch2 = new ToggleSwitch();
                 toggleSwitch2.HorizontalAlignment = HorizontalAlignment.Left;
                 toggleSwitch2.VerticalAlignment = VerticalAlignment.Center;
-                toggleSwitch2.Margin = new Thickness(1, 0, 5, 0);
-                toggleSwitch2.Name = "digitalstate_" + i;
+                toggleSwitch2.Margin = new Thickness( 1, 0, 5, 0 );
+                toggleSwitch2.Name = "digitalstate_" + digitalPins[i];
                 toggleSwitch2.Toggled += OnClick_DigitalStateToggleSwitch;
                 toggleSwitch2.IsEnabled = !isPinDisabled;
 
@@ -421,15 +421,15 @@ namespace remote_wiring_experience
                 offContent2.Text = ( isPinDisabled ? "Disabled" : "0v" );
                 offContent2.FontSize = 14;
                 toggleSwitch2.OffContent = offContent2;
-                digitalStateToggleSwitches.Add(i, toggleSwitch2);
+                digitalStateToggleSwitches.Add( digitalPins[i], toggleSwitch2 );
 
                 var text3 = new TextBlock();
                 text3.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text3.VerticalAlignment = VerticalAlignment.Center;
-                text3.Margin = new Thickness(0, 0, 0, 0);
+                text3.Margin = new Thickness( 0, 0, 0, 0 );
                 if( isPinDisabled )
                 {
-                    text3.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                    text3.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 106, 107, 106 ) );
                     text3.Text = "Disabled for serial connection or other use.";
                 }
                 else
@@ -438,14 +438,14 @@ namespace remote_wiring_experience
                 }
                 text3.FontSize = 14;
                 text3.Visibility = Visibility.Collapsed;
-                digitalStateTextBlocks.Add(i, text3);
+                digitalStateTextBlocks.Add( digitalPins[i], text3 );
 
-                stateStack.Children.Add(text3);
-                stateStack.Children.Add(toggleSwitch2);
-                containerStack.Children.Add(stateStack);
+                stateStack.Children.Add( text3 );
+                stateStack.Children.Add( toggleSwitch2 );
+                containerStack.Children.Add( stateStack );
 
                 // Add entire row to page.
-                DigitalPins.Children.Add(containerStack);
+                DigitalPins.Children.Add( containerStack );
             }
         }
 
@@ -462,7 +462,7 @@ namespace remote_wiring_experience
                 containerStack.Orientation = Orientation.Horizontal;
                 containerStack.FlowDirection = FlowDirection.LeftToRight;
                 containerStack.HorizontalAlignment = HorizontalAlignment.Stretch;
-                containerStack.Margin = new Thickness(8, 0, 0, 20);
+                containerStack.Margin = new Thickness( 8, 0, 0, 20 );
 
                 // Set up the pin text.
                 var textStack = new StackPanel();
@@ -473,7 +473,7 @@ namespace remote_wiring_experience
                 var text = new TextBlock();
                 text.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text.VerticalAlignment = VerticalAlignment.Center;
-                text.Margin = new Thickness(0, 0, 0, 0);
+                text.Margin = new Thickness( 0, 0, 0, 0 );
                 text.Text = "Pin A" + ( analogPins[i] - analogOffset );
                 text.FontSize = 14;
                 text.FontWeight = FontWeights.SemiBold;
@@ -481,27 +481,27 @@ namespace remote_wiring_experience
                 var text2 = new TextBlock();
                 text2.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text2.VerticalAlignment = VerticalAlignment.Center;
-                text2.Margin = new Thickness(0, 0, 0, 0);
+                text2.Margin = new Thickness( 0, 0, 0, 0 );
                 text2.Text = "Analog";
-                text2.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text2.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 106, 107, 106 ) );
                 text2.FontSize = 14;
                 text2.FontWeight = FontWeights.SemiBold;
 
-                textStack.Children.Add(text);
-                textStack.Children.Add(text2);
-                containerStack.Children.Add(textStack);
+                textStack.Children.Add( text );
+                textStack.Children.Add( text2 );
+                containerStack.Children.Add( textStack );
 
                 // Set up the mode toggle button.
                 var modeStack = new StackPanel();
                 modeStack.Orientation = Orientation.Horizontal;
                 modeStack.FlowDirection = FlowDirection.LeftToRight;
                 modeStack.HorizontalAlignment = HorizontalAlignment.Stretch;
-                modeStack.Margin = new Thickness(88, 0, 0, 0);
+                modeStack.Margin = new Thickness( 88, 0, 0, 0 );
 
                 var toggleSwitch = new ToggleSwitch();
                 toggleSwitch.HorizontalAlignment = HorizontalAlignment.Left;
                 toggleSwitch.VerticalAlignment = VerticalAlignment.Center;
-                toggleSwitch.Margin = new Thickness(5, 0, 5, 0);
+                toggleSwitch.Margin = new Thickness( 5, 0, 5, 0 );
                 toggleSwitch.Name = "analogmode_" + i;
                 toggleSwitch.Toggled += OnClick_AnalogModeToggleSwitch;
 
@@ -513,17 +513,17 @@ namespace remote_wiring_experience
                 offContent.Text = "Output";
                 offContent.FontSize = 14;
                 toggleSwitch.OffContent = offContent;
-                analogModeToggleSwitches.Add(i, toggleSwitch);
+                analogModeToggleSwitches.Add( i, toggleSwitch );
 
-                modeStack.Children.Add(toggleSwitch);
-                containerStack.Children.Add(modeStack);
+                modeStack.Children.Add( toggleSwitch );
+                containerStack.Children.Add( modeStack );
 
                 //set up the indication text
                 var text3 = new TextBlock();
                 text3.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text3.VerticalAlignment = VerticalAlignment.Center;
                 text3.Margin = new Thickness( 2, 0, 0, 0 );
-                text3.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text3.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 106, 107, 106 ) );
                 text3.Text = "Cannot write to analog pins.";
                 text3.FontSize = 14;
                 analogTextBlocks.Add( i, text3 );
@@ -540,14 +540,14 @@ namespace remote_wiring_experience
         private void loadPWMControls()
         {
             //add controls and value sliders for each pwm pin the board supports
-            for (byte i = 0; i < pwmPins.Count; ++i)
+            for( byte i = 0; i < pwmPins.Count; ++i )
             {
                 // Container stack to hold all pieces of new row of pins.
                 var containerStack = new StackPanel();
                 containerStack.Orientation = Orientation.Horizontal;
                 containerStack.FlowDirection = FlowDirection.LeftToRight;
                 containerStack.HorizontalAlignment = HorizontalAlignment.Stretch;
-                containerStack.Margin = new Thickness(8, 0, 0, 20);
+                containerStack.Margin = new Thickness( 8, 0, 0, 20 );
 
                 // Set up the pin text.
                 var textStack = new StackPanel();
@@ -558,7 +558,7 @@ namespace remote_wiring_experience
                 var text = new TextBlock();
                 text.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text.VerticalAlignment = VerticalAlignment.Center;
-                text.Margin = new Thickness(0, 0, 0, 0);
+                text.Margin = new Thickness( 0, 0, 0, 0 );
                 text.Text = "Pin " + pwmPins[i];
                 text.FontSize = 14;
                 text.FontWeight = FontWeights.SemiBold;
@@ -566,28 +566,28 @@ namespace remote_wiring_experience
                 var text2 = new TextBlock();
                 text2.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text2.VerticalAlignment = VerticalAlignment.Center;
-                text2.Margin = new Thickness(0, 0, 0, 0);
+                text2.Margin = new Thickness( 0, 0, 0, 0 );
                 text2.Text = "PWM";
-                text2.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text2.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 106, 107, 106 ) );
                 text2.FontSize = 14;
                 text2.FontWeight = FontWeights.SemiBold;
 
-                textStack.Children.Add(text);
-                textStack.Children.Add(text2);
-                containerStack.Children.Add(textStack);
+                textStack.Children.Add( text );
+                textStack.Children.Add( text2 );
+                containerStack.Children.Add( textStack );
 
                 // Set up the mode toggle button.
                 var modeStack = new StackPanel();
                 modeStack.Orientation = Orientation.Horizontal;
                 modeStack.FlowDirection = FlowDirection.LeftToRight;
                 modeStack.HorizontalAlignment = HorizontalAlignment.Stretch;
-                modeStack.Margin = new Thickness(88, 0, 0, 0);
+                modeStack.Margin = new Thickness( 88, 0, 0, 0 );
 
                 var toggleSwitch = new ToggleSwitch();
                 toggleSwitch.HorizontalAlignment = HorizontalAlignment.Left;
                 toggleSwitch.VerticalAlignment = VerticalAlignment.Center;
-                if (pwmPins[i] == 10 || pwmPins[i] == 13) { toggleSwitch.Margin = new Thickness(13, 0, 5, 0); }
-                else { toggleSwitch.Margin = new Thickness(15, 0, 5, 0); }
+                if( pwmPins[i] == 10 || pwmPins[i] == 13 ) { toggleSwitch.Margin = new Thickness( 13, 0, 5, 0 ); }
+                else { toggleSwitch.Margin = new Thickness( 15, 0, 5, 0 ); }
                 toggleSwitch.Name = "pwmmode_" + pwmPins[i];
                 toggleSwitch.Toggled += OnClick_PwmModeToggleSwitch;
 
@@ -599,10 +599,10 @@ namespace remote_wiring_experience
                 offContent.Text = "Disabled";
                 offContent.FontSize = 14;
                 toggleSwitch.OffContent = offContent;
-                pwmModeToggleSwitches.Add(pwmPins[i], toggleSwitch);
+                pwmModeToggleSwitches.Add( pwmPins[i], toggleSwitch );
 
-                modeStack.Children.Add(toggleSwitch);
-                containerStack.Children.Add(modeStack);
+                modeStack.Children.Add( toggleSwitch );
+                containerStack.Children.Add( modeStack );
 
                 //set up the value change slider
                 var slider = new Slider();
@@ -619,27 +619,27 @@ namespace remote_wiring_experience
                 slider.Name = "pwmslider_" + pwmPins[i];
                 slider.Width = 180;
                 slider.Height = 34;
-                slider.Margin = new Thickness(3, 0, 0, 0);
-                pwmSliders.Add(pwmPins[i], slider);
-                containerStack.Children.Add(slider);
+                slider.Margin = new Thickness( 3, 0, 0, 0 );
+                pwmSliders.Add( pwmPins[i], slider );
+                containerStack.Children.Add( slider );
 
                 //set up the indication text
                 var text3 = new TextBlock();
                 text3.HorizontalAlignment = HorizontalAlignment.Stretch;
                 text3.VerticalAlignment = VerticalAlignment.Center;
-                text3.Margin = new Thickness(3, 0, 0, 0);
-                text3.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text3.Margin = new Thickness( 3, 0, 0, 0 );
+                text3.Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 106, 107, 106 ) );
                 text3.Text = "Enable PWM to write values.";
                 text3.FontSize = 14;
                 text3.Name = "pwmtext_" + pwmPins[i];
                 text3.Visibility = Visibility.Visible;
-                pwmTextBlocks.Add(pwmPins[i], text3);
-                containerStack.Children.Add(text3);
+                pwmTextBlocks.Add( pwmPins[i], text3 );
+                containerStack.Children.Add( text3 );
 
-                PWMPins.Children.Add(containerStack);
+                PWMPins.Children.Add( containerStack );
             }
         }
-        
+
         /// <summary>
         /// Adds the necessary i2c controls to the i2c pivot page, this will only be called the first time this pivot page is loaded
         /// </summary>
@@ -656,8 +656,8 @@ namespace remote_wiring_experience
         /// <param name="pin">the pin number to be updated</param>
         private void UpdateDigitalPinIndicators( byte pin )
         {
-            if (!digitalModeToggleSwitches.ContainsKey(pin)) return;
-            
+            if( !digitalModeToggleSwitches.ContainsKey( pin ) ) return;
+
             if( disabledPins.Contains( pin ) )
             {
                 digitalModeToggleSwitches[pin].IsEnabled = false;
@@ -690,7 +690,7 @@ namespace remote_wiring_experience
                         digitalStateToggleSwitches[pin].Visibility = Visibility.Visible;
                         digitalStateTextBlocks[pin].Visibility = Visibility.Collapsed;
                         break;
-                        
+
                     default:
                         applyUsageMessage = true;
                         digitalModeToggleSwitches[pin].IsEnabled = false;
@@ -709,7 +709,7 @@ namespace remote_wiring_experience
                         case PinMode.PWM:
                             digitalStateTextBlocks[pin].Text = "Disabled for PWM use.";
                             break;
-                            
+
                         case PinMode.ANALOG:
                             digitalStateTextBlocks[pin].Text = "Disabled for Analog use.";
                             break;
@@ -741,8 +741,8 @@ namespace remote_wiring_experience
                 {
                     case PinMode.ANALOG:
                         //analogSliders[pin].Visibility = Visibility.Collapsed;
-                        analogTextBlocks[pin].Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 0, 0, 0));
-                        analogTextBlocks[pin].Text = "" + arduino.analogRead("A" + pin);
+                        analogTextBlocks[pin].Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 0, 0, 0 ) );
+                        analogTextBlocks[pin].Text = "" + arduino.analogRead( "A" + pin );
                         break;
 
                     case PinMode.I2C:
@@ -751,7 +751,7 @@ namespace remote_wiring_experience
 
                     default:
                         //analogSliders[pin].Visibility = Visibility.Visible;
-                        analogTextBlocks[pin].Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                        analogTextBlocks[pin].Foreground = new SolidColorBrush( Windows.UI.Color.FromArgb( 255, 106, 107, 106 ) );
                         analogTextBlocks[pin].Text = "Cannot write to analog pins.";
                         break;
                 }
@@ -932,19 +932,19 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="pin">the pin number to be reported</param>
         /// <param name="value">the value of the pin</param>
-        private void SendAnalogTelemetryEvent(byte pin, double value)
+        private void SendAnalogTelemetryEvent( byte pin, double value )
         {
             var properties = new Dictionary<string, string>();
-            properties.Add("pin_number", pin.ToString());
-            properties.Add("analog_value", value.ToString());
-            App.Telemetry.TrackEvent("Analog_Slider_Value_Changed", properties);
+            properties.Add( "pin_number", pin.ToString() );
+            properties.Add( "analog_value", value.ToString() );
+            App.Telemetry.TrackEvent( "Analog_Slider_Value_Changed", properties );
         }
 
 
         //******************************************************************************
         //* Menu Button Click Events
         //******************************************************************************
-        
+
         /// <summary>
         /// Called if the pointer hovers over any of the menu buttons.
         /// </summary>
@@ -982,7 +982,7 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="sender">The object invoking the event</param>
         /// <param name="e">Arguments relating to the event</param>
-        private void MenuButton_Click(object sender, RoutedEventArgs e)
+        private void MenuButton_Click( object sender, RoutedEventArgs e )
         {
             var button = sender as Button;
 
@@ -1077,13 +1077,13 @@ namespace remote_wiring_experience
         /// </summary>
         /// <param name="sender">The object invoking the event</param>
         /// <param name="e">Arguments relating to the event</param>
-        private void MenuButton_Exit(object sender, RoutedEventArgs e)
+        private void MenuButton_Exit( object sender, RoutedEventArgs e )
         {
             ConnectionRectangle.Visibility = Visibility.Collapsed;
-            DigitalRectangle.Visibility = (currentPage == 0) ? Visibility.Visible : Visibility.Collapsed;
-            AnalogRectangle.Visibility = (currentPage == 1) ? Visibility.Visible : Visibility.Collapsed;
-            PWMRectangle.Visibility = (currentPage == 2) ? Visibility.Visible : Visibility.Collapsed;
-            AboutRectangle.Visibility = (currentPage == 3) ? Visibility.Visible : Visibility.Collapsed;
+            DigitalRectangle.Visibility = ( currentPage == 0 ) ? Visibility.Visible : Visibility.Collapsed;
+            AnalogRectangle.Visibility = ( currentPage == 1 ) ? Visibility.Visible : Visibility.Collapsed;
+            PWMRectangle.Visibility = ( currentPage == 2 ) ? Visibility.Visible : Visibility.Collapsed;
+            AboutRectangle.Visibility = ( currentPage == 3 ) ? Visibility.Visible : Visibility.Collapsed;
         }
 
         /// <summary>

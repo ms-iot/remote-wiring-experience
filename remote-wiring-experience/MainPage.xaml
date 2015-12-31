@@ -8,19 +8,6 @@
     Background="White"
     mc:Ignorable="d">
 
-    <!--<Pivot Name="DeviceControlPivot" PivotItemLoaded="Pivot_PivotItemLoaded" PivotItemUnloading="Pivot_PivotItemUnloading">
-        <PivotItem Name="Digital" Header="Digital">
-            <ScrollViewer>
-                <StackPanel Name="DigitalControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-            </ScrollViewer>
-        </PivotItem>
-        <PivotItem Name="Analog" Header="Analog">
-            <ScrollViewer>
-                <StackPanel Name="AnalogControls" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Stretch"/>
-            </ScrollViewer>
-        </PivotItem>
-    </Pivot>-->
-
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="53"/>
@@ -167,25 +154,36 @@
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
                     <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
                 </Grid.RowDefinitions>
 
                 <StackPanel Grid.Row="0" x:Name="About1" Margin="30, 30, 0, 0">
                     <TextBlock HorizontalAlignment="Left" TextAlignment="Left" FontSize="32" FontWeight="ExtraLight" Margin="3, -5, 0, 0">About</TextBlock>
-                    <TextBlock Width="Auto" MaxWidth="430" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">The Windows Remote 
-                        Arduino Experience application allows users to control the GPIO, ADC, and PWM capabilities of an Arduino board from a Windows 10 device.  Setup is quick and easy – 
-                        simply upload the StandardFirmata sketch (included with the Arduino IDE) to the board and start this application to begin controlling pins on their microcontroller.</TextBlock>
+                    <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">This application is intended
+                        to show off the power of Windows Remote Arduino, an open source library that allows any Windows device to control an Arduino via USB, Bluetooth, or a network. Once connected, the library
+                        allows users to control the GPIO, ADC, PWM, I2C, and other capabilities of an Arduino board from any Windows 10 device. This application (also open source) will allow you to experiment with
+                        the GPIO, ADC, and PWM capabilities of the library without writing a single line of code!</TextBlock>
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" x:Name="About2" Margin="30, 8, 0, 0">
-                    <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">The pin availability in this 
-                        app is based on the Arduino Uno board.  If you’re using a more advanced Arduino board, you may find not all of your pins appear in the app - however, you still have full control of 
-                        the pins that are included.</TextBlock>
+                    <TextBlock Width="Auto" MaxWidth="430" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Setup is quick and easy – 
+                        simply upload the StandardFirmata sketch (included with the Arduino IDE) to the board and start this application to begin controlling pins on their microcontroller.
+                        Depending on your hardware configuration, you may need to make slight modifications to the StandardFirmata sketch to use the correct baud rate and Serial class.</TextBlock>
                 </StackPanel>
 
                 <StackPanel Grid.Row="2" x:Name="About3" Margin="30, 8, 0, 30">
                     <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">For additional questions, head over to 
-                        WindowsOnDevices.com where you’ll find a beginner’s tutorial to help set up your Arduino and this program.  Once you’ve covered the basics, there are additional 
-                        samples on the site to help you quickly start creating your own project.</TextBlock>
+                        <Hyperlink NavigateUri="http://windowsondevices.com">WindowsOnDevices.com</Hyperlink> where you’ll find a <Hyperlink NavigateUri="http://ms-iot.github.io/content/en-US/win10/WRA.htm">beginner’s tutorial</Hyperlink> on the "Getting Started" page to help set up your Arduino and this program.  Once you’ve covered the basics, there are additional 
+                        samples on the site to help you quickly start creating your own projects!</TextBlock>
+                </StackPanel>
+
+                <StackPanel Grid.Row="3" x:Name="About4" Margin="30, 8, 0, 30" Orientation="Vertical">
+                    <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">The Windows Remote Arduino source code
+                        is available at:</TextBlock>
+                    <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0"><Hyperlink NavigateUri="https://github.com/ms-iot/remote-wiring">https://github.com/ms-iot/remote-wiring</Hyperlink></TextBlock>
+                    <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">This application's source code
+                        is available at:</TextBlock>
+                    <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0"><Hyperlink NavigateUri="https://github.com/ms-iot/remote-wiring-experience">https://github.com/ms-iot/remote-wiring-experience</Hyperlink></TextBlock>
                 </StackPanel>
             </Grid>
         </ScrollViewer>

@@ -83,6 +83,7 @@ namespace remote_wiring_experience
                     DevicesText.Visibility = Visibility.Visible;
                     NetworkHostNameTextBox.IsEnabled = false;
                     NetworkPortTextBox.IsEnabled = false;
+                    BaudRateComboBox.IsEnabled = true;
                     NetworkHostNameTextBox.Text = "";
                     NetworkPortTextBox.Text = "";
 
@@ -98,6 +99,7 @@ namespace remote_wiring_experience
                     DevicesText.Visibility = Visibility.Visible;
                     NetworkHostNameTextBox.IsEnabled = false;
                     NetworkPortTextBox.IsEnabled = false;
+                    BaudRateComboBox.IsEnabled = true;
                     NetworkHostNameTextBox.Text = "";
                     NetworkPortTextBox.Text = "";
 
@@ -113,6 +115,7 @@ namespace remote_wiring_experience
                     DevicesText.Visibility = Visibility.Collapsed;
                     NetworkHostNameTextBox.IsEnabled = true;
                     NetworkPortTextBox.IsEnabled = true;
+                    BaudRateComboBox.IsEnabled = false;
                     ConnectMessage.Text = "Enter a host and port to connect.";
                     task = null;
                     break;
@@ -261,7 +264,7 @@ namespace remote_wiring_experience
             App.Telemetry.TrackEvent("Connection_Attempt");
 
             App.Arduino = new RemoteDevice( App.Connection );
-            App.Arduino.DeviceReady += OnConnectionEstablished;
+            App.Arduino.DeviceReady += OnDeviceReady;
             App.Arduino.DeviceConnectionFailed += OnConnectionFailed;
 
             connectionStopwatch.Reset();
@@ -297,7 +300,7 @@ namespace remote_wiring_experience
             } ) );
         }
 
-        private void OnConnectionEstablished()
+        private void OnDeviceReady()
         {
             var action = Dispatcher.RunAsync( Windows.UI.Core.CoreDispatcherPriority.Normal, new Windows.UI.Core.DispatchedHandler( () =>
             {
@@ -361,7 +364,7 @@ namespace remote_wiring_experience
         {
             if( App.Connection != null )
             {
-                App.Connection.ConnectionEstablished -= OnConnectionEstablished;
+                App.Connection.ConnectionEstablished -= OnDeviceReady;
                 App.Connection.ConnectionFailed -= OnConnectionFailed;
                 App.Connection.end();
             }

@@ -83,6 +83,7 @@ namespace remote_wiring_experience
                     DevicesText.Visibility = Visibility.Visible;
                     NetworkHostNameTextBox.IsEnabled = false;
                     NetworkPortTextBox.IsEnabled = false;
+                    BaudRateComboBox.IsEnabled = true;
                     NetworkHostNameTextBox.Text = "";
                     NetworkPortTextBox.Text = "";
 
@@ -98,6 +99,7 @@ namespace remote_wiring_experience
                     DevicesText.Visibility = Visibility.Visible;
                     NetworkHostNameTextBox.IsEnabled = false;
                     NetworkPortTextBox.IsEnabled = false;
+                    BaudRateComboBox.IsEnabled = true;
                     NetworkHostNameTextBox.Text = "";
                     NetworkPortTextBox.Text = "";
 
@@ -113,6 +115,7 @@ namespace remote_wiring_experience
                     DevicesText.Visibility = Visibility.Collapsed;
                     NetworkHostNameTextBox.IsEnabled = true;
                     NetworkPortTextBox.IsEnabled = true;
+                    BaudRateComboBox.IsEnabled = false;
                     ConnectMessage.Text = "Enter a host and port to connect.";
                     task = null;
                     break;

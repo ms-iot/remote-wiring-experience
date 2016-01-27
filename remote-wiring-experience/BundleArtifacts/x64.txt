@@ -1,2 +1,0 @@
-MainPackage=C:\git\remote-wiring-experience2\remote-wiring-experience\bin\x64\Release\remote-wiring-experience_1.2.2.0_x64.appx
-SymbolPackage=C:\git\remote-wiring-experience2\remote-wiring-experience\AppPackages\remote-wiring-experience_1.2.2.0\remote-wiring-experience_1.2.2.0_x64.appxsym

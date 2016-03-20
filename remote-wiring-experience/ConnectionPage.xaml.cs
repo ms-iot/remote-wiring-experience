@@ -431,6 +431,16 @@ namespace remote_wiring_experience
         }
 
         /// <summary>
+        /// Called if the pointer hovers over the Servo button.
+        /// </summary>
+        /// <param name="sender">The object invoking the event</param>
+        /// <param name="e">Arguments relating to the event</param>
+        private void ServoButton_Enter(object sender, RoutedEventArgs e)
+        {
+            ServoRectangle.Visibility = Visibility.Visible;
+        }
+
+        /// <summary>
         /// Called if the pointer hovers over the About button.
         /// </summary>
         /// <param name="sender">The object invoking the event</param>

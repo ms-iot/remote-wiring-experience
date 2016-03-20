@@ -29,6 +29,7 @@
                                 <ColumnDefinition Width="84" />
                                 <ColumnDefinition Width="84" />
                                 <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
                             </Grid.ColumnDefinitions>
                             <Button Name="ConnectButton" Grid.Column="0" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="MenuButton_Click" 
                         Background="#E6E6E6" BorderThickness="0" PointerEntered="MenuButton_Enter" PointerExited="MenuButton_Exit">
@@ -46,7 +47,11 @@
                         Background="#E6E6E6" BorderThickness="0" PointerEntered="MenuButton_Enter" PointerExited="MenuButton_Exit">
                                 <TextBlock x:Name="PWMText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">PWM</TextBlock>
                             </Button>
-                            <Button Name="AboutButton" Grid.Column="4" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="MenuButton_Click" 
+                            <Button Name="ServoButton" Grid.Column="4" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="MenuButton_Click" 
+                        Background="#E6E6E6" BorderThickness="0" PointerEntered="MenuButton_Enter" PointerExited="MenuButton_Exit">
+                                <TextBlock x:Name="ServoText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">Servo</TextBlock>
+                            </Button>
+                            <Button Name="AboutButton" Grid.Column="5" Height="50"  Width="84" Margin="0, 0, 0, 0" Click="MenuButton_Click" 
                         Background="#E6E6E6" BorderThickness="0" PointerEntered="MenuButton_Enter" PointerExited="MenuButton_Exit">
                                 <TextBlock x:Name="AboutText" HorizontalAlignment="Stretch" TextAlignment="Center" FontSize="12">About</TextBlock>
                             </Button>
@@ -61,12 +66,14 @@
                                 <ColumnDefinition Width="84" />
                                 <ColumnDefinition Width="84" />
                                 <ColumnDefinition Width="84" />
+                                <ColumnDefinition Width="84" />
                             </Grid.ColumnDefinitions>
                             <Rectangle x:Name="ConnectionRectangle" Grid.Column="0" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
                             <Rectangle x:Name="DigitalRectangle" Grid.Column="1" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Visible"></Rectangle>
                             <Rectangle x:Name="AnalogRectangle" Grid.Column="2" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
                             <Rectangle x:Name="PWMRectangle" Grid.Column="3" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
-                            <Rectangle x:Name="AboutRectangle" Grid.Column="4" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
+                            <Rectangle x:Name="ServoRectangle" Grid.Column="4" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
+                            <Rectangle x:Name="AboutRectangle" Grid.Column="5" HorizontalAlignment="Stretch" Fill="#0E74D9" Visibility="Collapsed"></Rectangle>
                         </Grid>
                     </StackPanel>
                 </Grid>
@@ -148,6 +155,31 @@
             </Grid>
         </ScrollViewer>
 
+        <ScrollViewer x:Name="ServoScroll" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
+            <Grid>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="48"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <StackPanel Grid.Row="0" x:Name="ServoDescription" Margin="30, 30, 0, 0">
+                    <TextBlock HorizontalAlignment="Left" TextAlignment="Left" FontSize="32" FontWeight="ExtraLight" Margin="3, -5, 0, 0">Servo</TextBlock>
+                    <TextBlock Width="Auto" MaxWidth="430" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">Use the features 
+                        on this page to control the Servo PWM functionality of the digital pins on your Arduino board. For more advanced Arduino boards, not all PWM pins may appear.</TextBlock>
+                </StackPanel>
+
+                <StackPanel Grid.Row="1" x:Name="ServoTableHeaders" Margin="34, 26, 0, 0" Orientation="Horizontal">
+                    <TextBlock Width="148" HorizontalAlignment="Left" TextAlignment="Left" FontSize="14" FontWeight="SemiBold" Margin="0, 0, 0, 0">Pin number</TextBlock>
+                    <TextBlock Width="160" HorizontalAlignment="Left" TextAlignment="Left" FontSize="14" FontWeight="SemiBold" Margin="0, 0, 0, 0">Input/Output</TextBlock>
+                    <TextBlock Width="100" HorizontalAlignment="Left" TextAlignment="Left" FontSize="14" FontWeight="SemiBold" Margin="0, 0, 0, 0">Value</TextBlock>
+                </StackPanel>
+
+                <StackPanel Grid.Row="2" Margin="34,18,34,0" x:Name="ServoPins" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                </StackPanel>
+            </Grid>
+        </ScrollViewer>
+
         <ScrollViewer x:Name="AboutPanel" Grid.Row="2" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" Visibility="Collapsed">
             <Grid>
                 <Grid.RowDefinitions>
@@ -161,8 +193,8 @@
                     <TextBlock HorizontalAlignment="Left" TextAlignment="Left" FontSize="32" FontWeight="ExtraLight" Margin="3, -5, 0, 0">About</TextBlock>
                     <TextBlock Width="Auto" MaxWidth="450" Height="Auto" HorizontalAlignment="Left" TextAlignment="Left" TextWrapping="Wrap" FontSize="14" Margin="4, 8, 0, 0">This application is intended
                         to show off the power of Windows Remote Arduino, an open source library that allows any Windows device to control an Arduino via USB, Bluetooth, or a network. Once connected, the library
-                        allows users to control the GPIO, ADC, PWM, I2C, and other capabilities of an Arduino board from any Windows 10 device. This application (also open source) will allow you to experiment with
-                        the GPIO, ADC, and PWM capabilities of the library without writing a single line of code!</TextBlock>
+                        allows users to control the GPIO, ADC, PWM, Servo, I2C, and other capabilities of an Arduino board from any Windows 10 device. This application (also open source) will allow you to experiment with
+                        the GPIO, ADC, PWM and servo capabilities of the library without writing a single line of code!</TextBlock>
                 </StackPanel>
 
                 <StackPanel Grid.Row="1" x:Name="About2" Margin="30, 8, 0, 0">

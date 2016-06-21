@@ -29,6 +29,10 @@ bld/
 # Visual Studo 2015 cache/options directory
 .vs/
 
+# Visual Studio IDE Temporary files
+*.VC.db
+*.VC.VC.opendb
+
 # MSTest test Results
 [Tt]est[Rr]esult*/
 [Bb]uild[Ll]og.*
@@ -41,6 +45,10 @@ TestResult.xml
 [Dd]ebugPS/
 [Rr]eleasePS/
 dlldata.c
+
+# DNX
+remote-wiring-experience/project.lock.json
+artifacts/
 
 *_i.c
 *_p.c

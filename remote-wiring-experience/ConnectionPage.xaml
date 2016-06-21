@@ -68,6 +68,7 @@
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
                         <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="Auto"/>
                     </Grid.RowDefinitions>
 
                     <StackPanel Grid.Row="0" x:Name="Description" Margin="30, 30, 34, 0">
@@ -83,8 +84,9 @@
                             <StackPanel Margin="0,0,20,0" Orientation="Vertical" HorizontalAlignment="Stretch">
                                 <TextBlock FontSize="14" Text="Connection" />
                                 <ComboBox Margin="0, 5, 0, 0" Height="32" Width="150" x:Name="ConnectionMethodComboBox" HorizontalAlignment="Stretch" FontSize="14" SelectedIndex="0">
-                                    <x:String>Bluetooth</x:String>
                                     <x:String>USB</x:String>
+                                    <x:String>Bluetooth</x:String>
+                                    <x:String>BLE</x:String>
                                     <x:String>Network</x:String>
                                 </ComboBox>
                             </StackPanel>
@@ -117,15 +119,27 @@
                         </StackPanel>
                     </StackPanel>
 
-                    <StackPanel Grid.Row="3" Margin="34,10,34,0" x:Name="ConnectStackParent" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Center">
+                    <StackPanel Grid.Row="3" Margin="30,0,0,0" x:Name="BLESettings" Orientation="Vertical">
+                        <StackPanel Margin="4, 0, 0, 0" Orientation="Horizontal" HorizontalAlignment="Stretch">
+                            <StackPanel Margin="0,0,0,0" x:Name="BLESchemaSelections" Orientation="Vertical" HorizontalAlignment="Stretch">
+                                <TextBlock FontSize="14" Text="BLE Serial Schema" />
+                                <ComboBox Margin="-10, 5, 0, 0" Height="32" Width="100" x:Name="BLESchemaComboBox" HorizontalAlignment="Stretch" FontSize="14" SelectedIndex="0">
+                                    <x:String>dfRobot</x:String>
+                                    <x:String>Curie</x:String>
+                                </ComboBox>
+                            </StackPanel>
+                        </StackPanel>
+                    </StackPanel>
+
+                    <StackPanel Grid.Row="4" Margin="34,10,34,0" x:Name="ConnectStackParent" Orientation="Vertical" HorizontalAlignment="Stretch" VerticalAlignment="Center">
                         <TextBlock x:Name="DevicesText" FontWeight="SemiBold" FontSize="14">Devices discovered</TextBlock>
                         <ListBox Margin="0, 5, 0, 0" x:Name="ConnectionList" DisplayMemberPath="DisplayName" />
                     </StackPanel>
 
-                    <TextBlock Grid.Row="4" Margin="34,4,34,0"
+                    <TextBlock Grid.Row="5" Margin="34,4,34,0"
                             x:Name="ConnectMessage" FontSize="14" MaxWidth="430" Width="Auto" HorizontalAlignment="Left" TextAlignment="Left" VerticalAlignment="Bottom" TextWrapping="Wrap" />
 
-                    <StackPanel Grid.Row="5" Margin="34, 32, 34, 30" Orientation="Horizontal" FlowDirection="RightToLeft" >
+                    <StackPanel Grid.Row="6" Margin="34, 32, 34, 30" Orientation="Horizontal" FlowDirection="RightToLeft" >
                         <Button x:Uid="Connect" Height="32"  Width="100" Margin="0, 0, 5, 0" x:Name="ConnectButton" Click="ConnectButton_Click" 
                             Background="#0078D7" Foreground="White" FontSize="14">Connect</Button>
                         <Button x:Uid="RefreshBtn" Height="32" Width="100" Margin="0,0,5,0" x:Name="RefreshButton" Click="RefreshButton_Click" FontSize="14">Refresh</Button>

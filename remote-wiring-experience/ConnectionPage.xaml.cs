@@ -86,12 +86,30 @@ namespace remote_wiring_experience
                     BaudRateComboBox.IsEnabled = true;
                     NetworkHostNameTextBox.Text = "";
                     NetworkPortTextBox.Text = "";
+                    BLESchemaComboBox.IsEnabled = false;
 
                     //create a cancellation token which can be used to cancel a task
                     cancelTokenSource = new CancellationTokenSource();
                     cancelTokenSource.Token.Register( () => OnConnectionCancelled() );
 
                     task = BluetoothSerial.listAvailableDevicesAsync().AsTask<DeviceInformationCollection>( cancelTokenSource.Token );
+                    break;
+
+                case "BLE":
+                    ConnectionList.Visibility = Visibility.Visible;
+                    DevicesText.Visibility = Visibility.Visible;
+                    NetworkHostNameTextBox.IsEnabled = false;
+                    NetworkPortTextBox.IsEnabled = false;
+                    BaudRateComboBox.IsEnabled = false;
+                    NetworkHostNameTextBox.Text = "";
+                    NetworkPortTextBox.Text = "";
+                    BLESchemaComboBox.IsEnabled = true;
+
+                    //create a cancellation token which can be used to cancel a task
+                    cancelTokenSource = new CancellationTokenSource();
+                    cancelTokenSource.Token.Register(() => OnConnectionCancelled());
+
+                    task = BleSerial.listAvailableDevicesAsync().AsTask<DeviceInformationCollection>(cancelTokenSource.Token);
                     break;
 
                 case "USB":
@@ -102,6 +120,7 @@ namespace remote_wiring_experience
                     BaudRateComboBox.IsEnabled = true;
                     NetworkHostNameTextBox.Text = "";
                     NetworkPortTextBox.Text = "";
+                    BLESchemaComboBox.IsEnabled = false;
 
                     //create a cancellation token which can be used to cancel a task
                     cancelTokenSource = new CancellationTokenSource();
@@ -116,6 +135,7 @@ namespace remote_wiring_experience
                     NetworkHostNameTextBox.IsEnabled = true;
                     NetworkPortTextBox.IsEnabled = true;
                     BaudRateComboBox.IsEnabled = false;
+                    BLESchemaComboBox.IsEnabled = false;
                     ConnectMessage.Text = "Enter a host and port to connect.";
                     task = null;
                     break;
@@ -224,6 +244,25 @@ namespace remote_wiring_experience
                     App.Telemetry.Context.Properties["connection.detail"] = String.Format("{0:X}", device.Id.GetHashCode());
 
                     App.Connection = new BluetoothSerial( device );
+                    break;
+
+                case "BLE":
+
+                    // populate telemetry properties about this connection attempt
+                    App.Telemetry.Context.Properties["connection.name"] = string.Format("{0:X}", device.Name.GetHashCode());
+                    App.Telemetry.Context.Properties["connection.detail"] = string.Format("{0:X}", device.Id.GetHashCode());
+
+                    //switch on BLE types
+                    switch( BLESchemaComboBox.SelectedItem as string)
+                    {
+                        default:
+                        case "Curie":
+                            App.Connection = new CurieBleSerial(device);
+                            break;
+                        case "dfRobot":
+                            App.Connection = new DfRobotBleSerial(device);
+                            break;
+                    }
                     break;
 
                 case "USB":

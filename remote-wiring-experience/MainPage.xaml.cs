@@ -44,8 +44,11 @@ namespace remote_wiring_experience
         private Dictionary<byte, Slider> analogSliders;
         private Dictionary<byte, TextBlock> analogTextBlocks;
         private Dictionary<byte, ToggleSwitch> pwmModeToggleSwitches;
+        private Dictionary<byte, ToggleSwitch> servoModeToggleSwitches;
         private Dictionary<byte, TextBlock> pwmTextBlocks;
+        private Dictionary<byte, TextBlock> servoTextBlocks;
         private Dictionary<byte, Slider> pwmSliders;
+        private Dictionary<byte, Slider> servoSliders;
 
         private RemoteDevice arduino;
 
@@ -53,7 +56,7 @@ namespace remote_wiring_experience
         DateTime lastPageNavigationTime;
 
         private int currentPage = 0;
-        private String[] pages = { "Digital", "Analog", "PWM", "About" };
+        private String[] pages = { "Digital", "Analog", "PWM", "About", "Servo" };
         private bool navigated = false;
         private bool resetVoltage = false;
 
@@ -73,7 +76,10 @@ namespace remote_wiring_experience
             analogSliders = new Dictionary<byte, Slider>();
             analogTextBlocks = new Dictionary<byte, TextBlock>();
             pwmModeToggleSwitches = new Dictionary<byte, ToggleSwitch>();
+            servoModeToggleSwitches = new Dictionary<byte, ToggleSwitch>();
             pwmTextBlocks = new Dictionary<byte, TextBlock>();
+            servoTextBlocks = new Dictionary<byte, TextBlock>();
+            servoSliders = new Dictionary<byte, Slider>();
             pwmSliders = new Dictionary<byte, Slider>();
         }
 
@@ -309,6 +315,66 @@ namespace remote_wiring_experience
             App.Telemetry.TrackEvent( "Pwm_Slider_Value_Changed", properties );
         }
 
+        /// <summary>
+        /// Invoked when the servo mode toggle button is tapped or pressed
+        /// </summary>
+        /// <param name="sender">the button being pressed</param>
+        /// <param name="args">button press event args</param>
+        private void OnClick_ServoModeToggleSwitch(object sender, RoutedEventArgs args)
+        {
+            var button = sender as ToggleSwitch;
+            var pin = GetPinFromButtonObject(button);
+
+            var mode = arduino.getPinMode(pin);
+            var nextMode = (mode == PinMode.SERVO) ? PinMode.OUTPUT : PinMode.SERVO;
+
+            resetVoltage = true;
+            if (nextMode == PinMode.OUTPUT)
+            {
+                digitalStateToggleSwitches[pin].IsOn = false;
+            }
+            resetVoltage = false;
+
+            //telemetry
+            var properties = new Dictionary<string, string>();
+            properties.Add("pin_number", pin.ToString());
+            properties.Add("new_state", nextMode.ToString());
+            App.Telemetry.TrackEvent("Servo_Mode_Toggle_Button_Pressed", properties);
+
+            arduino.pinMode(pin, nextMode);
+            UpdateServoPinModeIndicator(pin);
+        }
+
+        /// <summary>
+        /// Invoked when the slider value for a servo pin is modified.
+        /// </summary>
+        /// <param name="sender">the slider being manipulated</param>
+        /// <param name="args">slider value changed event args</param>
+        private void OnValueChanged_ServoSlider(object sender, RangeBaseValueChangedEventArgs args)
+        {
+            var slider = sender as Slider;
+            var pin = Convert.ToByte(slider.Name.Substring(slider.Name.IndexOf('_') + 1));
+
+            //pwmTextBlocks[pin].Text = args.NewValue.ToString();
+            arduino.analogWrite(pin, (byte)args.NewValue);
+        }
+
+        /// <summary>
+        /// This function helps to process telemetry events when manipulation of a servo slider is complete, 
+        /// rather than after each tick.
+        /// </summary>
+        /// <param name="sender">the slider which was released</param>
+        /// <param name="args">the slider release event args</param>
+        private void OnPointerReleased_ServoSlider(object sender, PointerRoutedEventArgs args)
+        {
+            var slider = sender as Slider;
+            var pin = Convert.ToByte(slider.Name.Substring(slider.Name.IndexOf('_') + 1));
+
+            var properties = new Dictionary<string, string>();
+            properties.Add("pin_number", pin.ToString());
+            properties.Add("analog_value", slider.Value.ToString());
+            App.Telemetry.TrackEvent("Servo_Slider_Value_Changed", properties);
+        }
 
         //******************************************************************************
         //* UI Support Functions
@@ -324,6 +390,7 @@ namespace remote_wiring_experience
             loadDigitalControls();
             loadAnalogControls();
             loadPWMControls();
+            loadServoControls();
         }
 
 
@@ -641,6 +708,112 @@ namespace remote_wiring_experience
         }
 
         /// <summary>
+        /// Adds the necessary analog controls to a StackPanel created for the PWM page. This will only be called on navigation from the Connections page.
+        /// </summary>
+        private void loadServoControls()
+        {
+            //add controls and value sliders for each pwm pin the board supports
+            for (byte i = 0; i < pwmPins.Count; ++i)
+            {
+                // Container stack to hold all pieces of new row of pins.
+                var containerStack = new StackPanel();
+                containerStack.Orientation = Orientation.Horizontal;
+                containerStack.FlowDirection = FlowDirection.LeftToRight;
+                containerStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+                containerStack.Margin = new Thickness(8, 0, 0, 20);
+
+                // Set up the pin text.
+                var textStack = new StackPanel();
+                textStack.Orientation = Orientation.Vertical;
+                textStack.FlowDirection = FlowDirection.LeftToRight;
+                textStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+
+                var text = new TextBlock();
+                text.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text.VerticalAlignment = VerticalAlignment.Center;
+                text.Margin = new Thickness(0, 0, 0, 0);
+                text.Text = "Pin " + pwmPins[i];
+                text.FontSize = 14;
+                text.FontWeight = FontWeights.SemiBold;
+
+                var text2 = new TextBlock();
+                text2.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text2.VerticalAlignment = VerticalAlignment.Center;
+                text2.Margin = new Thickness(0, 0, 0, 0);
+                text2.Text = "Servo";
+                text2.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text2.FontSize = 14;
+                text2.FontWeight = FontWeights.SemiBold;
+
+                textStack.Children.Add(text);
+                textStack.Children.Add(text2);
+                containerStack.Children.Add(textStack);
+
+                // Set up the mode toggle button.
+                var modeStack = new StackPanel();
+                modeStack.Orientation = Orientation.Horizontal;
+                modeStack.FlowDirection = FlowDirection.LeftToRight;
+                modeStack.HorizontalAlignment = HorizontalAlignment.Stretch;
+                modeStack.Margin = new Thickness(88, 0, 0, 0);
+
+                var toggleSwitch = new ToggleSwitch();
+                toggleSwitch.HorizontalAlignment = HorizontalAlignment.Left;
+                toggleSwitch.VerticalAlignment = VerticalAlignment.Center;
+                if (pwmPins[i] == 10 || pwmPins[i] == 13) { toggleSwitch.Margin = new Thickness(13, 0, 5, 0); }
+                else { toggleSwitch.Margin = new Thickness(15, 0, 5, 0); }
+                toggleSwitch.Name = "servomode_" + pwmPins[i];
+                toggleSwitch.Toggled += OnClick_ServoModeToggleSwitch;
+
+                var onContent = new TextBlock();
+                onContent.Text = "Enabled";
+                onContent.FontSize = 14;
+                toggleSwitch.OnContent = onContent;
+                var offContent = new TextBlock();
+                offContent.Text = "Disabled";
+                offContent.FontSize = 14;
+                toggleSwitch.OffContent = offContent;
+                servoModeToggleSwitches.Add(pwmPins[i], toggleSwitch);
+
+                modeStack.Children.Add(toggleSwitch);
+                containerStack.Children.Add(modeStack);
+
+                //set up the value change slider
+                var slider = new Slider();
+                slider.Visibility = Visibility.Collapsed;
+                slider.Orientation = Orientation.Horizontal;
+                slider.HorizontalAlignment = HorizontalAlignment.Stretch;
+                slider.SmallChange = 5;
+                slider.StepFrequency = 5;
+                slider.TickFrequency = 5;
+                slider.ValueChanged += OnValueChanged_ServoSlider;
+                slider.PointerReleased += OnPointerReleased_ServoSlider;
+                slider.Minimum = 0;
+                slider.Maximum = 180;
+                slider.Name = "servoslider_" + pwmPins[i];
+                slider.Width = 180;
+                slider.Height = 34;
+                slider.Margin = new Thickness(3, 0, 0, 0);
+                servoSliders.Add(pwmPins[i], slider);
+                containerStack.Children.Add(slider);
+
+                //set up the indication text
+                var text3 = new TextBlock();
+                text3.HorizontalAlignment = HorizontalAlignment.Stretch;
+                text3.VerticalAlignment = VerticalAlignment.Center;
+                text3.Margin = new Thickness(3, 0, 0, 0);
+                text3.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 106, 107, 106));
+                text3.Text = "Enable Servo to write values.";
+                text3.FontSize = 14;
+                text3.Name = "servotext_" + pwmPins[i];
+                text3.Visibility = Visibility.Visible;
+                servoTextBlocks.Add(pwmPins[i], text3);
+                containerStack.Children.Add(text3);
+
+                ServoPins.Children.Add(containerStack);
+            }
+        }
+
+        /// <summary>
         /// Adds the necessary i2c controls to the i2c pivot page, this will only be called the first time this pivot page is loaded
         /// </summary>
         private void loadI2cControls()
@@ -708,6 +881,10 @@ namespace remote_wiring_experience
                     {
                         case PinMode.PWM:
                             digitalStateTextBlocks[pin].Text = "Disabled for PWM use.";
+                            break;
+
+                        case PinMode.SERVO:
+                            digitalStateTextBlocks[pin].Text = "Disabled for Servo use.";
                             break;
 
                         case PinMode.ANALOG:
@@ -787,6 +964,28 @@ namespace remote_wiring_experience
                 default:
                     pwmSliders[pin].Visibility = Visibility.Collapsed;
                     pwmTextBlocks[pin].Visibility = Visibility.Visible;
+                    break;
+            }
+        }
+
+        /// <summary>
+        /// This function will determine which pin mode image should be applied for a given servo pin and apply it to the correct Image object
+        /// </summary>
+        /// <param name="pin">the pin number to be updated</param>
+        private void UpdateServoPinModeIndicator(byte pin)
+        {
+            if (!servoModeToggleSwitches.ContainsKey(pin)) return;
+
+            switch (arduino.getPinMode(pin))
+            {
+                case PinMode.SERVO:
+                    servoSliders[pin].Visibility = Visibility.Visible;
+                    servoTextBlocks[pin].Visibility = Visibility.Collapsed;
+                    break;
+
+                default:
+                    servoSliders[pin].Visibility = Visibility.Collapsed;
+                    servoTextBlocks[pin].Visibility = Visibility.Visible;
                     break;
             }
         }
@@ -1055,6 +1254,24 @@ namespace remote_wiring_experience
 
                     break;
 
+                case "ServoButton":
+
+                    //update menu and page visibility
+                    ServoScroll.Visibility = Visibility.Visible;
+                    ServoRectangle.Visibility = Visibility.Visible;
+                    ServoText.Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 14, 127, 217));
+
+                    //update servo indicators
+                    for (byte pin = 0; pin < pwmPins.Count; ++pin)
+                    {
+                        UpdateServoPinModeIndicator(pin);
+                    }
+
+                    App.Telemetry.TrackPageView("Servo_Controls_Page");
+                    nextPage = 4;
+
+                    break;
+
                 case "AboutButton":
                     AboutPanel.Visibility = Visibility.Visible;
                     AboutRectangle.Visibility = Visibility.Visible;
@@ -1083,6 +1300,7 @@ namespace remote_wiring_experience
             DigitalRectangle.Visibility = ( currentPage == 0 ) ? Visibility.Visible : Visibility.Collapsed;
             AnalogRectangle.Visibility = ( currentPage == 1 ) ? Visibility.Visible : Visibility.Collapsed;
             PWMRectangle.Visibility = ( currentPage == 2 ) ? Visibility.Visible : Visibility.Collapsed;
+            ServoRectangle.Visibility = (currentPage == 4) ? Visibility.Visible : Visibility.Collapsed;
             AboutRectangle.Visibility = ( currentPage == 3 ) ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -1094,16 +1312,19 @@ namespace remote_wiring_experience
             DigitalScroll.Visibility = Visibility.Collapsed;
             AnalogScroll.Visibility = Visibility.Collapsed;
             PWMScroll.Visibility = Visibility.Collapsed;
+            ServoScroll.Visibility = Visibility.Collapsed;
             AboutPanel.Visibility = Visibility.Collapsed;
 
             DigitalRectangle.Visibility = Visibility.Collapsed;
             AnalogRectangle.Visibility = Visibility.Collapsed;
             PWMRectangle.Visibility = Visibility.Collapsed;
+            ServoRectangle.Visibility = Visibility.Collapsed;
             AboutRectangle.Visibility = Visibility.Collapsed;
 
             DigitalText.Foreground = new SolidColorBrush( Windows.UI.Colors.Black );
             AnalogText.Foreground = new SolidColorBrush( Windows.UI.Colors.Black );
             PWMText.Foreground = new SolidColorBrush( Windows.UI.Colors.Black );
+            ServoText.Foreground = new SolidColorBrush(Windows.UI.Colors.Black);
             AboutText.Foreground = new SolidColorBrush( Windows.UI.Colors.Black );
         }
     }

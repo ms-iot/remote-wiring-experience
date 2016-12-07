@@ -13,6 +13,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using Windows.UI.Xaml.Media.Imaging;
 using Windows.UI.Xaml.Media;
+using Windows.Storage;
 
 // The Blank Page item template is documented at http://go.microsoft.com/fwlink/?LinkId=402352&clcid=0x409
 
@@ -33,6 +34,9 @@ namespace remote_wiring_experience
         Image wire;
 
         bool navigated = false;
+
+        const string SETTINGS_HOST = "networkHost";
+        const string SETTINGS_PORT = "networkPort";
 
         public ConnectionPage()
         {
@@ -137,6 +141,21 @@ namespace remote_wiring_experience
                     BaudRateComboBox.IsEnabled = false;
                     BLESchemaComboBox.IsEnabled = false;
                     ConnectMessage.Text = "Enter a host and port to connect.";
+
+                    // Last working host and port is persisted across sessions. Retrieve this data.
+                    var host = ApplicationData.Current.LocalSettings.Values[SETTINGS_HOST];
+                    var port = ApplicationData.Current.LocalSettings.Values[SETTINGS_PORT];
+                    if (host != null && port != null)
+                    {
+                        NetworkHostNameTextBox.Text = host.ToString();
+                        NetworkPortTextBox.Text = port.ToString();
+                    }
+                    else
+                    {
+                        NetworkHostNameTextBox.Text = "";
+                        NetworkPortTextBox.Text = "";
+                    }
+
                     task = null;
                     break;
             }
@@ -345,6 +364,10 @@ namespace remote_wiring_experience
             {
                 timeout.Stop();
                 ConnectMessage.Text = "Successfully connected!";
+
+                // Store the host and port settings
+                ApplicationData.Current.LocalSettings.Values[SETTINGS_HOST] = NetworkHostNameTextBox.Text;
+                ApplicationData.Current.LocalSettings.Values[SETTINGS_PORT] = NetworkPortTextBox.Text;
 
                 //telemetry
                 connectionStopwatch.Stop();
